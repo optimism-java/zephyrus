@@ -1,5 +1,5 @@
 const std = @import("std");
-const preset=@import("presets/preset.zig");
+const preset = @import("presets/preset.zig");
 
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
