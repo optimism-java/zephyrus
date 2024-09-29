@@ -1,5 +1,7 @@
 const std = @import("std");
 const preset = @import("presets/preset.zig");
+const bellatrix = @import("consensus/bellatrix/types.zig");
+const types = @import("consensus/types.zig");
 
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
@@ -17,4 +19,27 @@ pub fn main() !void {
     // print mainnet preset
     try stdout.print("{}\n", .{preset.mainnet_preset});
     try bw.flush(); // don't forget to flush!
+
+    const a = types.HistoricalBatchMainnet{
+        .block_roots = undefined,
+        .state_roots = undefined,
+    };
+
+    const b = bellatrix.ExecutionPayloadHeaderMainnet{
+        .parent_hash = undefined,
+        .fee_recipient = undefined,
+        .state_root = undefined,
+        .receipts_root = undefined,
+        .logs_bloom = undefined,
+        .prev_randao = undefined,
+        .block_number = 21,
+        .gas_used = 0,
+        .gas_limit = 0,
+        .timestamp = 0,
+        .extra_data = undefined,
+        .base_fee_per_gas = 0,
+        .block_hash = undefined,
+    };
+    try stdout.print("{}\n", .{a});
+    try stdout.print("{}\n", .{b});
 }

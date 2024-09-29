@@ -69,6 +69,9 @@ pub fn HistoricalBatch(comptime T: preset.BeaconPreset) type {
     };
 }
 
+pub const HistoricalBatchMainnet = HistoricalBatch(preset.mainnet_preset);
+pub const HistoricalBatchMininal = HistoricalBatch(preset.mininal_preset);
+
 pub const DepositMessage = struct {
     pubkey: primitives.BLSPubkey,
     withdrawal_credentials: primitives.Bytes32,
@@ -250,11 +253,109 @@ pub fn LightClientFinalityUpdate(comptime T: preset.BeaconPreset) type {
     return struct {
         attested_header: ?*LightClientHeader(T),
         finalized_header: ?*LightClientHeader(T),
-        finality_branch: primitives.Slot,
+        finality_branch: primitives.FinalityBranch,
         sync_aggregate: ?*SyncAggregate(T),
         signature_slot: primitives.Slot,
     };
 }
+
+pub fn LightClientUpdate(comptime T: preset.BeaconPreset) type {
+    return struct {
+        attested_header: ?*LightClientHeader(T),
+        next_sync_committee: ?*SyncCommittee(T),
+        next_sync_committee_branch: primitives.NextSyncCommitteeBranch,
+        finalized_header: ?*LightClientHeader(T),
+        finality_branch: primitives.FinalityBranch,
+        sync_aggregate: ?*SyncAggregate(T),
+        signature_slot: primitives.Slot,
+    };
+}
+
+pub fn LightClientBootstrap(comptime T: preset.BeaconPreset) type {
+    return struct {
+        header: ?*LightClientHeader(T),
+        current_sync_committee: ?*SyncCommittee(T),
+        current_sync_committee_branch: primitives.CurrentSyncCommitteeBranch,
+    };
+}
+
+pub const PowBlock = struct {
+    block_hash: primitives.Hash32,
+    parent_hash: primitives.Hash32,
+    total_difficulty: u256,
+};
+
+pub const Withdrawal = struct {
+    index: primitives.WithdrawalIndex,
+    validator_index: primitives.ValidatorIndex,
+    address: primitives.ExecutionAddress,
+    amount: primitives.Gwei,
+};
+
+pub const BLSToExecutionChange = struct {
+    validator_index: primitives.ValidatorIndex,
+    from_bls_pubkey: primitives.BLSPubkey,
+    to_execution_address: primitives.ExecutionAddress,
+};
+
+pub const SignedBLSToExecutionChange = struct {
+    message: ?*BLSToExecutionChange,
+    signature: primitives.BLSSignature,
+};
+
+pub const HistoricalSummary = struct {
+    // HistoricalSummary matches the components of the phase0 HistoricalBatch
+    // making the two hash_tree_root-compatible.
+    block_summary_root: primitives.Root,
+    state_summary_root: primitives.Root,
+};
+
+pub fn BlobSidecar(comptime T: preset.BeaconPreset) type {
+    return struct {
+        index: primitives.BlobIndex,
+        blob: primitives.Blob,
+        kzg_commitment: primitives.KZGCommitment,
+        kzg_proof: primitives.KZGProof,
+        signed_block_header: ?*SignedBeaconBlockHeader,
+        kzg_commitment_inclusion_proof: [T.KZG_COMMITMENT_INCLUSION_PROOF_DEPTH]primitives.Bytes32,
+    };
+}
+
+pub const BlobIdentifier = struct {
+    block_root: primitives.Root,
+    index: primitives.BlobIndex,
+};
+
+pub const DepositRequest = struct {
+    pubkey: primitives.BLSPubkey,
+    withdrawal_credentials: primitives.Bytes32,
+    amount: primitives.Gwei,
+    signature: primitives.BLSSignature,
+    index: u64,
+};
+
+pub const PendingBalanceDeposit = struct {
+    index: primitives.ValidatorIndex,
+    amount: primitives.Gwei,
+};
+
+pub const PendingPartialWithdrawal = struct {
+    index: primitives.ValidatorIndex,
+    amount: primitives.Gwei,
+    withdrawable_epoch: primitives.Epoch,
+};
+
+pub const WithdrawalRequest = struct {
+    source_address: primitives.ExecutionAddress,
+    validator_pubkey: primitives.BLSPubkey,
+    amount: primitives.Gwei,
+};
+
+pub const ConsolidationRequest = struct {
+    source_address: primitives.ExecutionAddress,
+    source_pubkey: primitives.BLSPubkey,
+    target_pubkey: primitives.BLSPubkey,
+};
 
 // pub const BeaconState = struct {
 //     genesis_time: u64,

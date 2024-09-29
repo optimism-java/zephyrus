@@ -27,4 +27,13 @@ pub const ETH_TO_GWEI: u64 = std.math.pow(u64, 10, 9);
 pub const SAFETY_DECAY: u64 = 10;
 
 pub const EXECUTION_PAYLOAD_GINDEX: usize = 25;
+pub const FINALIZED_ROOT_GINDEX: usize = 105;
 pub const FINALIZED_ROOT_GINDEX_ELECTRA: usize = 169;
+pub const CURRENT_SYNC_COMMITTEE_GINDEX: usize = 54;
+pub const CURRENT_SYNC_COMMITTEE_GINDEX_ELECTRA: usize = 86;
+pub const NEXT_SYNC_COMMITTEE_GINDEX: usize = 55;
+pub const NEXT_SYNC_COMMITTEE_GINDEX_ELECTRA: usize = 87;
+
+pub const BYTES_PER_FIELD_ELEMENT: usize = 32;
+pub const FIELD_ELEMENTS_PER_BLOB: usize = 4096;
+pub const MAX_BLOBS_PER_BLOCK: usize = 6;
