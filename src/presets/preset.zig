@@ -1,6 +1,11 @@
 const std = @import("std");
 const primitives = @import("../primitives/types.zig");
 
+pub const Presets = enum {
+    mainnet,
+    minimal,
+};
+
 /// Compile-time chain configuration
 pub const BeaconPreset = struct {
     // Misc
@@ -190,7 +195,7 @@ pub const mainnet_preset = BeaconPreset{
 
 /// Minimal preset for testing
 /// https://github.com/ethereum/consensus-specs/tree/dev/presets/minimal
-pub const mininal_preset = BeaconPreset{
+pub const minimal_preset = BeaconPreset{
     // Misc
     .MAX_COMMITTEES_PER_SLOT = 4,
     .TARGET_COMMITTEE_SIZE = 4,
@@ -303,23 +308,23 @@ test "mainnet preset" {
 }
 
 test "minimal preset" {
-    try std.testing.expectEqual(mininal_preset.MAX_BYTES_PER_TRANSACTION, 1073741824);
-    try std.testing.expectEqual(mininal_preset.MAX_TRANSACTIONS_PER_PAYLOAD, 1048576);
-    try std.testing.expectEqual(mininal_preset.BYTES_PER_LOGS_BLOOM, 256);
-    try std.testing.expectEqual(mininal_preset.MAX_EXTRA_DATA_BYTES, 32);
-    try std.testing.expectEqual(mininal_preset.MAX_BLS_TO_EXECUTION_CHANGES, 16);
-    try std.testing.expectEqual(mininal_preset.MAX_WITHDRAWALS_PER_PAYLOAD, 4);
-    try std.testing.expectEqual(mininal_preset.MAX_VALIDATORS_PER_WITHDRAWALS_SWEEP, 16);
-    try std.testing.expectEqual(mininal_preset.FIELD_ELEMENTS_PER_BLOB, 4096);
-    try std.testing.expectEqual(mininal_preset.MAX_BLOB_COMMITMENTS_PER_BLOCK, 16);
-    try std.testing.expectEqual(mininal_preset.MAX_BLOBS_PER_BLOCK, 6);
-    try std.testing.expectEqual(mininal_preset.KZG_COMMITMENT_INCLUSION_PROOF_DEPTH, 9);
-    try std.testing.expectEqual(mininal_preset.MAX_DEPOSIT_REQUESTS_PER_PAYLOAD, 4);
-    try std.testing.expectEqual(mininal_preset.MAX_WITHDRAWAL_REQUESTS_PER_PAYLOAD, 2);
-    try std.testing.expectEqual(mininal_preset.MAX_ATTESTER_SLASHINGS_ELECTRA, 1);
-    try std.testing.expectEqual(mininal_preset.MAX_ATTESTATIONS_ELECTRA, 8);
-    try std.testing.expectEqual(mininal_preset.MAX_PENDING_PARTIALS_PER_WITHDRAWALS_SWEEP, 1);
-    try std.testing.expectEqual(mininal_preset.MAX_EFFECTIVE_BALANCE_ELECTRA, 2048000000000);
-    try std.testing.expectEqual(mininal_preset.MIN_SLASHING_PENALTY_QUOTIENT_ELECTRA, 4096);
-    try std.testing.expectEqual(mininal_preset.MIN_ACTIVATION_BALANCE, 32000000000);
+    try std.testing.expectEqual(minimal_preset.MAX_BYTES_PER_TRANSACTION, 1073741824);
+    try std.testing.expectEqual(minimal_preset.MAX_TRANSACTIONS_PER_PAYLOAD, 1048576);
+    try std.testing.expectEqual(minimal_preset.BYTES_PER_LOGS_BLOOM, 256);
+    try std.testing.expectEqual(minimal_preset.MAX_EXTRA_DATA_BYTES, 32);
+    try std.testing.expectEqual(minimal_preset.MAX_BLS_TO_EXECUTION_CHANGES, 16);
+    try std.testing.expectEqual(minimal_preset.MAX_WITHDRAWALS_PER_PAYLOAD, 4);
+    try std.testing.expectEqual(minimal_preset.MAX_VALIDATORS_PER_WITHDRAWALS_SWEEP, 16);
+    try std.testing.expectEqual(minimal_preset.FIELD_ELEMENTS_PER_BLOB, 4096);
+    try std.testing.expectEqual(minimal_preset.MAX_BLOB_COMMITMENTS_PER_BLOCK, 16);
+    try std.testing.expectEqual(minimal_preset.MAX_BLOBS_PER_BLOCK, 6);
+    try std.testing.expectEqual(minimal_preset.KZG_COMMITMENT_INCLUSION_PROOF_DEPTH, 9);
+    try std.testing.expectEqual(minimal_preset.MAX_DEPOSIT_REQUESTS_PER_PAYLOAD, 4);
+    try std.testing.expectEqual(minimal_preset.MAX_WITHDRAWAL_REQUESTS_PER_PAYLOAD, 2);
+    try std.testing.expectEqual(minimal_preset.MAX_ATTESTER_SLASHINGS_ELECTRA, 1);
+    try std.testing.expectEqual(minimal_preset.MAX_ATTESTATIONS_ELECTRA, 8);
+    try std.testing.expectEqual(minimal_preset.MAX_PENDING_PARTIALS_PER_WITHDRAWALS_SWEEP, 1);
+    try std.testing.expectEqual(minimal_preset.MAX_EFFECTIVE_BALANCE_ELECTRA, 2048000000000);
+    try std.testing.expectEqual(minimal_preset.MIN_SLASHING_PENALTY_QUOTIENT_ELECTRA, 4096);
+    try std.testing.expectEqual(minimal_preset.MIN_ACTIVATION_BALANCE, 32000000000);
 }

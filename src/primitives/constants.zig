@@ -8,6 +8,7 @@ pub const GENESIS_EPOCH: types.Epoch = 0;
 pub const FAR_FUTURE_EPOCH: types.Epoch = std.math.maxInt(u64);
 pub const BASE_REWARDS_PER_EPOCH: u64 = 4;
 pub const DEPOSIT_CONTRACT_TREE_DEPTH: u64 = 32;
+pub const SYNC_COMMITTEE_SUBNET_COUNT: usize = 4;
 pub const JUSTIFICATION_BITS_LENGTH: u64 = 4;
 pub const ENDIANNESS = .little;
 pub const BLS_WITHDRAWAL_PREFIX: types.Bytes1 = .{0x00};

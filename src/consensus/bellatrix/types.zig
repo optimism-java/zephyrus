@@ -2,9 +2,8 @@ const std = @import("std");
 pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 
-pub fn ExecutionPayloadHeader(comptime T: preset.BeaconPreset) type {
+pub fn ExecutionPayloadHeaderType(comptime T: preset.BeaconPreset) type {
     return struct {
-        // Execution block header fields
         parent_hash: primitives.Hash32,
         fee_recipient: primitives.ExecutionAddress,
         state_root: primitives.Root,
@@ -19,15 +18,20 @@ pub fn ExecutionPayloadHeader(comptime T: preset.BeaconPreset) type {
         base_fee_per_gas: u256,
         // Extra payload fields
         block_hash: primitives.Hash32,
-        // transactions: [T.MAX_TRANSACTIONS_PER_PAYLOAD]primitives.Transaction(T),
+        transactions_root: primitives.Root,
     };
 }
 
-pub const ExecutionPayloadHeaderMainnet = ExecutionPayloadHeader(preset.mainnet_preset);
+pub const ExecutionPayloadHeaderMainnet = ExecutionPayloadHeaderType(preset.mainnet_preset);
 
-pub const ExecutionPayloadHeaderMinimal = ExecutionPayloadHeader(preset.mininal_preset);
+pub const ExecutionPayloadHeaderMinimal = ExecutionPayloadHeaderType(preset.minimal_preset);
 
-test "ExecutionPayloadHeader" {
+pub const ExecutionPayloadHeader = union(preset.Presets) {
+    mainnet: ExecutionPayloadHeaderMainnet,
+    minimal: ExecutionPayloadHeaderMinimal,
+};
+
+test "test ExecutionPayloadHeaderMainnet" {
     const header = ExecutionPayloadHeaderMainnet{
         .parent_hash = undefined,
         .fee_recipient = undefined,
@@ -42,8 +46,9 @@ test "ExecutionPayloadHeader" {
         .extra_data = undefined,
         .base_fee_per_gas = 0,
         .block_hash = undefined,
-        // .transactions = undefined,
+        .transactions_root = undefined,
     };
+
     try std.testing.expectEqual(header.parent_hash.len, 32);
     try std.testing.expectEqual(header.block_number, 21);
 }

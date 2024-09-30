@@ -39,6 +39,7 @@ pub fn main() !void {
         .extra_data = undefined,
         .base_fee_per_gas = 0,
         .block_hash = undefined,
+        .transactions_root = undefined,
     };
     try stdout.print("{}\n", .{a});
     try stdout.print("{}\n", .{b});

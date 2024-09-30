@@ -1,6 +1,11 @@
 const std = @import("std");
 const primitives = @import("../primitives/types.zig");
 const preset = @import("../presets/preset.zig");
+const constants = @import("../primitives/constants.zig");
+const bellatrix = @import("../consensus/bellatrix/types.zig");
+const capella = @import("../consensus/capella/types.zig");
+const deneb = @import("../consensus/deneb/types.zig");
+const electra = @import("../consensus/electra/types.zig");
 
 pub const Fork = struct {
     previous_version: primitives.Version,
@@ -39,7 +44,7 @@ pub const AttestationData = struct {
     target: ?*Checkpoint,
 };
 
-pub fn IndexedAttestation(comptime T: preset.BeaconPreset) type {
+pub fn IndexedAttestationType(comptime T: preset.BeaconPreset) type {
     return struct {
         attesting_indices: [T.MAX_VALIDATORS_PER_COMMITTEE * T.MAX_COMMITTEES_PER_SLOT]primitives.ValidatorIndex,
         data: ?*AttestationData,
@@ -47,7 +52,14 @@ pub fn IndexedAttestation(comptime T: preset.BeaconPreset) type {
     };
 }
 
-pub fn PendingAttestation(comptime T: preset.BeaconPreset) type {
+pub const IndexedAttestationMainnet = IndexedAttestationType(preset.mainnet_preset);
+pub const IndexedAttestationMininal = IndexedAttestationType(preset.minimal_preset);
+pub const IndexedAttestation = union(preset.Presets) {
+    mainnet: IndexedAttestationMainnet,
+    minimal: IndexedAttestationMininal,
+};
+
+pub fn PendingAttestationType(comptime T: preset.BeaconPreset) type {
     return struct {
         aggregation_bits: std.StaticBitSet(T.MAX_VALIDATORS_PER_COMMITTEE),
         data: AttestationData,
@@ -56,21 +68,34 @@ pub fn PendingAttestation(comptime T: preset.BeaconPreset) type {
     };
 }
 
+pub const PendingAttestationMainnet = PendingAttestationType(preset.mainnet_preset);
+pub const PendingAttestationMinimal = PendingAttestationType(preset.minimal_preset);
+
+pub const PendingAttestation = union(preset.Presets) {
+    mainnet: PendingAttestationMainnet,
+    minimal: PendingAttestationMinimal,
+};
+
 pub const Eth1Data = struct {
     deposit_root: primitives.Root,
     deposit_count: u64,
     block_hash: primitives.Hash32,
 };
 
-pub fn HistoricalBatch(comptime T: preset.BeaconPreset) type {
+pub fn HistoricalBatchType(comptime T: preset.BeaconPreset) type {
     return struct {
         block_roots: [T.SLOTS_PER_HISTORICAL_ROOT]primitives.Root,
         state_roots: [T.SLOTS_PER_HISTORICAL_ROOT]primitives.Root,
     };
 }
 
-pub const HistoricalBatchMainnet = HistoricalBatch(preset.mainnet_preset);
-pub const HistoricalBatchMininal = HistoricalBatch(preset.mininal_preset);
+pub const HistoricalBatchMainnet = HistoricalBatchType(preset.mainnet_preset);
+pub const HistoricalBatchMininal = HistoricalBatchType(preset.minimal_preset);
+
+pub const HistoricalBatch = union(preset.Presets) {
+    mainnet: HistoricalBatchMainnet,
+    minimal: HistoricalBatchMininal,
+};
 
 pub const DepositMessage = struct {
     pubkey: primitives.BLSPubkey,
@@ -98,14 +123,12 @@ pub const SigningData = struct {
     domain: primitives.Domain,
 };
 
-pub fn AttesterSlashing(comptime T: preset.BeaconPreset) type {
-    return struct {
-        attestation_1: ?*IndexedAttestation(T),
-        attestation_2: ?*IndexedAttestation(T),
-    };
-}
+pub const AttesterSlashing = struct {
+    attestation_1: ?*IndexedAttestation,
+    attestation_2: ?*IndexedAttestation,
+};
 
-pub fn Attestation(comptime T: preset.BeaconPreset) type {
+pub fn AttestationType(comptime T: preset.BeaconPreset) type {
     return struct {
         aggregation_bits: std.StaticBitSet(T.MAX_VALIDATORS_PER_COMMITTEE),
         data: ?*AttestationData,
@@ -114,12 +137,18 @@ pub fn Attestation(comptime T: preset.BeaconPreset) type {
     };
 }
 
-pub fn Deposit(comptime T: preset.BeaconPreset) type {
-    return struct {
-        proof: [T.DEPOSIT_CONTRACT_TREE_DEPTH + 1]primitives.Bytes32,
-        data: ?*DepositData,
-    };
-}
+pub const AttestationMainnet = AttestationType(preset.mainnet_preset);
+pub const AttestationMinimal = AttestationType(preset.minimal_preset);
+
+pub const Attestation = union(preset.Presets) {
+    mainnet: AttestationMainnet,
+    minimal: AttestationMinimal,
+};
+
+pub const Deposit = struct {
+    proof: [constants.DEPOSIT_CONTRACT_TREE_DEPTH + 1]primitives.Bytes32,
+    data: ?*DepositData,
+};
 
 pub const VoluntaryExit = struct {
     epoch: primitives.Epoch,
@@ -147,27 +176,41 @@ pub const Eth1Block = struct {
     deposit_count: u64,
 };
 
-pub fn AggregateAndProof(comptime T: preset.BeaconPreset) type {
-    return struct {
-        aggregator_index: primitives.ValidatorIndex,
-        aggregate: ?*Attestation(T),
-        selection_proof: primitives.BLSSignature,
-    };
-}
+pub const AggregateAndProof = struct {
+    aggregator_index: primitives.ValidatorIndex,
+    aggregate: ?*Attestation,
+    selection_proof: primitives.BLSSignature,
+};
 
-pub fn SyncAggregate(comptime T: preset.BeaconPreset) type {
+pub fn SyncAggregateType(comptime T: preset.BeaconPreset) type {
     return struct {
         sync_committee_bits: std.StaticBitSet(T.SYNC_COMMITTEE_SIZE),
         sync_committee_signature: primitives.BLSSignature,
     };
 }
 
-pub fn SyncCommittee(comptime T: preset.BeaconPreset) type {
+pub const SyncAggregateMainnet = SyncAggregateType(preset.mainnet_preset);
+pub const SyncAggregateMinimal = SyncAggregateType(preset.minimal_preset);
+
+pub const SyncAggregate = union(preset.Presets) {
+    mainnet: SyncAggregateMainnet,
+    minimal: SyncAggregateMinimal,
+};
+
+pub fn SyncCommitteeType(comptime T: preset.BeaconPreset) type {
     return struct {
         pubkeys: [T.SYNC_COMMITTEE_SIZE]primitives.BLSPubkey,
         aggregate_pubkey: primitives.BLSPubkey,
     };
 }
+
+pub const SyncCommitteeMainnet = SyncCommitteeType(preset.mainnet_preset);
+pub const SyncCommitteeMinimal = SyncCommitteeType(preset.minimal_preset);
+
+pub const SyncCommittee = union(preset.Presets) {
+    mainnet: SyncCommitteeMainnet,
+    minimal: SyncCommitteeMinimal,
+};
 
 pub const SyncCommitteeMessage = struct {
     slot: primitives.Slot,
@@ -176,108 +219,84 @@ pub const SyncCommitteeMessage = struct {
     signature: primitives.BLSSignature,
 };
 
-pub fn SyncCommitteeContribution(comptime T: preset.BeaconPreset) type {
+pub fn SyncCommitteeContributionType(comptime T: preset.BeaconPreset) type {
     return struct {
         slot: primitives.Slot,
         beacon_block_root: primitives.Root,
         subcommittee_index: u64,
-        aggregation_bits: std.StaticBitSet(T.SYNC_COMMITTEE_SIZE / T.SYNC_COMMITTEE_SUBNET_COUNT),
+        aggregation_bits: std.StaticBitSet(T.SYNC_COMMITTEE_SIZE / constants.SYNC_COMMITTEE_SUBNET_COUNT),
         signature: primitives.BLSSignature,
     };
 }
 
-pub fn ContributionAndProof(comptime T: preset.BeaconPreset) type {
-    return struct {
-        aggregator_index: primitives.ValidatorIndex,
-        aggregate: ?*SyncCommitteeContribution(T),
-        selection_proof: primitives.BLSSignature,
-    };
-}
+pub const SyncCommitteeContributionMainnet = SyncCommitteeContributionType(preset.mainnet_preset);
+pub const SyncCommitteeContributionMinimal = SyncCommitteeContributionType(preset.minimal_preset);
 
-pub fn SignedBeaconBlock(comptime T: preset.BeaconPreset) type {
-    return struct {
-        message: ?*ContributionAndProof(T),
-        signature: primitives.BLSSignature,
-    };
-}
+pub const SyncCommitteeContribution = union(preset.Presets) {
+    mainnet: SyncCommitteeContributionMainnet,
+    minimal: SyncCommitteeContributionMinimal,
+};
+
+pub const ContributionAndProof = struct {
+    aggregator_index: primitives.ValidatorIndex,
+    aggregate: ?*SyncCommitteeContribution,
+    selection_proof: primitives.BLSSignature,
+};
+
+pub const SignedBeaconBlock = struct {
+    message: ?*ContributionAndProof,
+    signature: primitives.BLSSignature,
+};
 
 pub const SyncAggregatorSelectionData = struct {
     slot: primitives.Slot,
     subcommittee_index: u64,
 };
 
-pub fn ExecutionPayloadHeader(comptime T: preset.BeaconPreset) type {
-    return struct {
-        // Execution block header fields
-        parent_hash: primitives.Hash32,
-        fee_recipient: primitives.ExecutionAddress,
-        state_root: primitives.Root,
-        receipts_root: primitives.Root,
-        logs_bloom: [T.BYTES_PER_LOGS_BLOOM]u8,
-        prev_randao: primitives.Bytes32,
-        block_number: u64,
-        gas_used: u64,
-        gas_limit: u64,
-        timestamp: u64,
-        extra_data: [T.MAX_EXTRA_DATA_BYTES]u8,
-        base_fee_per_gas: u256,
-        // Extra payload fields
-        block_hash: primitives.Hash32,
-        transactions_root: primitives.Root,
-        withdrawals_root: primitives.Root,
-        blob_gas_used: u64,
-        excess_blob_gas: u64,
-        deposit_requests_root: primitives.Root,
-        withdrawal_requests_root: primitives.Root,
-        consolidation_requests_root: primitives.Root,
-    };
-}
+pub const ExecutionPayloadHeader = union(primitives.ForkType) {
+    phase0: type,
+    altair: type,
+    bellatrix: bellatrix.ExecutionPayloadHeader,
+    capella: capella.ExecutionPayloadHeader,
+    deneb: deneb.ExecutionPayloadHeader,
+    electra: electra.ExecutionPayloadHeader,
+};
 
-pub fn LightClientHeader(comptime T: preset.BeaconPreset) type {
-    return struct {
-        beacon: ?*BeaconBlockHeader,
-        execution: ?*ExecutionPayloadHeader(T),
-        execution_branch: primitives.ExecutionBranch,
-    };
-}
+pub const LightClientHeader = struct {
+    beacon: ?*BeaconBlockHeader,
+    execution: ?*ExecutionPayloadHeader,
+    execution_branch: primitives.ExecutionBranch,
+};
 
-pub fn LightClientOptimisticUpdate(comptime T: preset.BeaconPreset) type {
-    return struct {
-        attested_header: ?*LightClientHeader(T),
-        sync_aggregate: ?*SyncAggregate(T),
-        signature_slot: primitives.Slot,
-    };
-}
+pub const LightClientOptimisticUpdate = struct {
+    attested_header: ?*LightClientHeader,
+    sync_aggregate: ?*SyncAggregate,
+    signature_slot: primitives.Slot,
+};
 
-pub fn LightClientFinalityUpdate(comptime T: preset.BeaconPreset) type {
-    return struct {
-        attested_header: ?*LightClientHeader(T),
-        finalized_header: ?*LightClientHeader(T),
-        finality_branch: primitives.FinalityBranch,
-        sync_aggregate: ?*SyncAggregate(T),
-        signature_slot: primitives.Slot,
-    };
-}
+pub const LightClientFinalityUpdate = struct {
+    attested_header: ?*LightClientHeader,
+    finalized_header: ?*LightClientHeader,
+    finality_branch: primitives.FinalityBranch,
+    sync_aggregate: ?*SyncAggregate,
+    signature_slot: primitives.Slot,
+};
 
-pub fn LightClientUpdate(comptime T: preset.BeaconPreset) type {
-    return struct {
-        attested_header: ?*LightClientHeader(T),
-        next_sync_committee: ?*SyncCommittee(T),
-        next_sync_committee_branch: primitives.NextSyncCommitteeBranch,
-        finalized_header: ?*LightClientHeader(T),
-        finality_branch: primitives.FinalityBranch,
-        sync_aggregate: ?*SyncAggregate(T),
-        signature_slot: primitives.Slot,
-    };
-}
+pub const LightClientUpdate = struct {
+    attested_header: ?*LightClientHeader,
+    next_sync_committee: ?*SyncCommittee,
+    next_sync_committee_branch: primitives.NextSyncCommitteeBranch,
+    finalized_header: ?*LightClientHeader,
+    finality_branch: primitives.FinalityBranch,
+    sync_aggregate: ?*SyncAggregate,
+    signature_slot: primitives.Slot,
+};
 
-pub fn LightClientBootstrap(comptime T: preset.BeaconPreset) type {
-    return struct {
-        header: ?*LightClientHeader(T),
-        current_sync_committee: ?*SyncCommittee(T),
-        current_sync_committee_branch: primitives.CurrentSyncCommitteeBranch,
-    };
-}
+pub const LightClientBootstrap = struct {
+    header: ?*LightClientHeader,
+    current_sync_committee: ?*SyncCommittee,
+    current_sync_committee_branch: primitives.CurrentSyncCommitteeBranch,
+};
 
 pub const PowBlock = struct {
     block_hash: primitives.Hash32,

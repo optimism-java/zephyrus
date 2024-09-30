@@ -49,28 +49,31 @@ pub const CurrentSyncCommitteeBranchAltair = [utils.floorLog2(constants.CURRENT_
 
 pub const CurrentSyncCommitteeBranchElectra = [utils.floorLog2(constants.CURRENT_SYNC_COMMITTEE_GINDEX_ELECTRA)]Bytes32;
 
-pub const FinalityBranch = union(enum) {
-    Altair: FinalityBranchAltair,
-    Bellatrix: FinalityBranchAltair,
-    Capella: FinalityBranchAltair,
-    Deneb: FinalityBranchAltair,
-    Electra: FinalityBranchElectra,
+pub const FinalityBranch = union(ForkType) {
+    phase0: type,
+    altair: FinalityBranchAltair,
+    bellatrix: FinalityBranchAltair,
+    capella: FinalityBranchAltair,
+    deneb: FinalityBranchAltair,
+    electra: FinalityBranchElectra,
 };
 
-pub const NextSyncCommitteeBranch = union(enum) {
-    Altair: NextSyncCommitteeBranchAltair,
-    Bellatrix: NextSyncCommitteeBranchAltair,
-    Capella: NextSyncCommitteeBranchAltair,
-    Deneb: NextSyncCommitteeBranchAltair,
-    Electra: NextSyncCommitteeBranchElectra,
+pub const NextSyncCommitteeBranch = union(ForkType) {
+    phase0: type,
+    altair: NextSyncCommitteeBranchAltair,
+    bellatrix: NextSyncCommitteeBranchAltair,
+    capella: NextSyncCommitteeBranchAltair,
+    deneb: NextSyncCommitteeBranchAltair,
+    electra: NextSyncCommitteeBranchElectra,
 };
 
-pub const CurrentSyncCommitteeBranch = union(enum) {
-    Altair: CurrentSyncCommitteeBranchAltair,
-    Bellatrix: CurrentSyncCommitteeBranchAltair,
-    Capella: CurrentSyncCommitteeBranchAltair,
-    Deneb: CurrentSyncCommitteeBranchAltair,
-    Electra: CurrentSyncCommitteeBranchElectra,
+pub const CurrentSyncCommitteeBranch = union(ForkType) {
+    phase0: type,
+    altair: CurrentSyncCommitteeBranchAltair,
+    bellatrix: CurrentSyncCommitteeBranchAltair,
+    capella: CurrentSyncCommitteeBranchAltair,
+    deneb: CurrentSyncCommitteeBranchAltair,
+    electra: CurrentSyncCommitteeBranchElectra,
 };
 
 pub fn Transaction(comptime T: preset.BeaconPreset) type {
@@ -78,43 +81,43 @@ pub fn Transaction(comptime T: preset.BeaconPreset) type {
 }
 
 pub const ForkType = enum {
-    Phase0,
-    Altair,
-    Bellatrix,
-    Capella,
-    Deneb,
-    Electra,
+    phase0,
+    altair,
+    bellatrix,
+    capella,
+    deneb,
+    electra,
 };
 
 test "test ExecutionBranch length" {
-    const ExecutionBranchLength = @typeInfo(ExecutionBranch).Array.len;
+    const ExecutionBranchLength = @typeInfo(ExecutionBranch).array.len;
     try std.testing.expectEqual(4, ExecutionBranchLength);
 }
 
 test "test FinalityBranchElectra length" {
-    const FinalityBranchLength = @typeInfo(FinalityBranchElectra).Array.len;
+    const FinalityBranchLength = @typeInfo(FinalityBranchElectra).array.len;
     try std.testing.expectEqual(7, FinalityBranchLength);
 }
 
 test "test FinalityBranch length" {
-    const FinalityBranchLength = @typeInfo(FinalityBranchAltair).Array.len;
+    const FinalityBranchLength = @typeInfo(FinalityBranchAltair).array.len;
     try std.testing.expectEqual(6, FinalityBranchLength);
 }
 
 test "test FinalityBranch Union length" {
-    const FinalityBranchLength = @typeInfo(@typeInfo(FinalityBranch).Union.fields[0].type).Array.len;
+    const FinalityBranchLength = @typeInfo(@typeInfo(FinalityBranch).@"union".fields[1].type).array.len;
     try std.testing.expectEqual(6, FinalityBranchLength);
-    const FinalityBranchLength2 = @typeInfo(@typeInfo(FinalityBranch).Union.fields[1].type).Array.len;
+    const FinalityBranchLength2 = @typeInfo(@typeInfo(FinalityBranch).@"union".fields[2].type).array.len;
     try std.testing.expectEqual(6, FinalityBranchLength2);
-    const FinalityBranchLength3 = @typeInfo(@typeInfo(FinalityBranch).Union.fields[2].type).Array.len;
+    const FinalityBranchLength3 = @typeInfo(@typeInfo(FinalityBranch).@"union".fields[3].type).array.len;
     try std.testing.expectEqual(6, FinalityBranchLength3);
-    const FinalityBranchLength4 = @typeInfo(@typeInfo(FinalityBranch).Union.fields[3].type).Array.len;
+    const FinalityBranchLength4 = @typeInfo(@typeInfo(FinalityBranch).@"union".fields[4].type).array.len;
     try std.testing.expectEqual(6, FinalityBranchLength4);
-    const FinalityBranchLength5 = @typeInfo(@typeInfo(FinalityBranch).Union.fields[4].type).Array.len;
+    const FinalityBranchLength5 = @typeInfo(@typeInfo(FinalityBranch).@"union".fields[5].type).array.len;
     try std.testing.expectEqual(7, FinalityBranchLength5);
 }
 
 test "test ForkType length" {
-    const ForkTypeLength = @typeInfo(ForkType).Enum.fields.len;
+    const ForkTypeLength = @typeInfo(ForkType).@"enum".fields.len;
     try std.testing.expectEqual(6, ForkTypeLength);
 }
