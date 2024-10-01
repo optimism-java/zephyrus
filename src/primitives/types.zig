@@ -76,9 +76,7 @@ pub const CurrentSyncCommitteeBranch = union(ForkType) {
     electra: CurrentSyncCommitteeBranchElectra,
 };
 
-pub fn Transaction(comptime T: preset.BeaconPreset) type {
-    return [T.MAX_BYTES_PER_TRANSACTION]u8;
-}
+pub const Transaction = []u8;
 
 pub const ForkType = enum {
     phase0,

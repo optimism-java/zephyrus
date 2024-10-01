@@ -2,43 +2,32 @@ const std = @import("std");
 pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 
-pub fn ExecutionPayloadHeaderType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        parent_hash: primitives.Hash32,
-        fee_recipient: primitives.ExecutionAddress,
-        state_root: primitives.Root,
-        receipts_root: primitives.Root,
-        logs_bloom: [T.BYTES_PER_LOGS_BLOOM]u8,
-        prev_randao: primitives.Bytes32,
-        block_number: u64,
-        gas_used: u64,
-        gas_limit: u64,
-        timestamp: u64,
-        extra_data: [T.MAX_EXTRA_DATA_BYTES]u8,
-        base_fee_per_gas: u256,
-        // Extra payload fields
-        block_hash: primitives.Hash32,
-        transactions_root: primitives.Root,
-        withdrawals_root: primitives.Root,
-        blob_gas_used: u64,
-        excess_blob_gas: u64,
-        deposit_requests_root: primitives.Root,
-        withdrawal_requests_root: primitives.Root,
-        consolidation_requests_root: primitives.Root,
-    };
-}
-
-pub const ExecutionPayloadHeaderMainnet = ExecutionPayloadHeaderType(preset.mainnet_preset);
-
-pub const ExecutionPayloadHeaderMinimal = ExecutionPayloadHeaderType(preset.minimal_preset);
-
-pub const ExecutionPayloadHeader = union(preset.Presets) {
-    mainnet: ExecutionPayloadHeaderMainnet,
-    minimal: ExecutionPayloadHeaderMinimal,
+pub const ExecutionPayloadHeader = struct {
+    parent_hash: primitives.Hash32,
+    fee_recipient: primitives.ExecutionAddress,
+    state_root: primitives.Root,
+    receipts_root: primitives.Root,
+    logs_bloom: []u8,
+    prev_randao: primitives.Bytes32,
+    block_number: u64,
+    gas_used: u64,
+    gas_limit: u64,
+    timestamp: u64,
+    extra_data: []u8,
+    base_fee_per_gas: u256,
+    // Extra payload fields
+    block_hash: primitives.Hash32,
+    transactions_root: primitives.Root,
+    withdrawals_root: primitives.Root,
+    blob_gas_used: u64,
+    excess_blob_gas: u64,
+    deposit_requests_root: primitives.Root,
+    withdrawal_requests_root: primitives.Root,
+    consolidation_requests_root: primitives.Root,
 };
 
-test "test ExecutionPayloadHeaderMainnet" {
-    const header = ExecutionPayloadHeaderMainnet{
+test "test ExecutionPayloadHeader" {
+    const header = ExecutionPayloadHeader{
         .parent_hash = undefined,
         .fee_recipient = undefined,
         .state_root = undefined,

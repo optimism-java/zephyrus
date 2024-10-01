@@ -44,36 +44,17 @@ pub const AttestationData = struct {
     target: ?*Checkpoint,
 };
 
-pub fn IndexedAttestationType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        attesting_indices: [T.MAX_VALIDATORS_PER_COMMITTEE * T.MAX_COMMITTEES_PER_SLOT]primitives.ValidatorIndex,
-        data: ?*AttestationData,
-        signature: primitives.BLSSignature,
-    };
-}
-
-pub const IndexedAttestationMainnet = IndexedAttestationType(preset.mainnet_preset);
-pub const IndexedAttestationMininal = IndexedAttestationType(preset.minimal_preset);
-pub const IndexedAttestation = union(preset.Presets) {
-    mainnet: IndexedAttestationMainnet,
-    minimal: IndexedAttestationMininal,
+pub const IndexedAttestation = struct {
+    attesting_indices: []primitives.ValidatorIndex,
+    data: ?*AttestationData,
+    signature: primitives.BLSSignature,
 };
 
-pub fn PendingAttestationType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        aggregation_bits: std.StaticBitSet(T.MAX_VALIDATORS_PER_COMMITTEE),
-        data: AttestationData,
-        inclusion_delay: primitives.Slot,
-        proposer_index: primitives.ValidatorIndex,
-    };
-}
-
-pub const PendingAttestationMainnet = PendingAttestationType(preset.mainnet_preset);
-pub const PendingAttestationMinimal = PendingAttestationType(preset.minimal_preset);
-
-pub const PendingAttestation = union(preset.Presets) {
-    mainnet: PendingAttestationMainnet,
-    minimal: PendingAttestationMinimal,
+pub const PendingAttestation = struct {
+    aggregation_bits: std.DynamicBitSet,
+    data: AttestationData,
+    inclusion_delay: primitives.Slot,
+    proposer_index: primitives.ValidatorIndex,
 };
 
 pub const Eth1Data = struct {
@@ -92,9 +73,9 @@ pub fn HistoricalBatchType(comptime T: preset.BeaconPreset) type {
 pub const HistoricalBatchMainnet = HistoricalBatchType(preset.mainnet_preset);
 pub const HistoricalBatchMininal = HistoricalBatchType(preset.minimal_preset);
 
-pub const HistoricalBatch = union(preset.Presets) {
-    mainnet: HistoricalBatchMainnet,
-    minimal: HistoricalBatchMininal,
+pub const HistoricalBatch = struct {
+    block_roots: []primitives.Root,
+    state_roots: []primitives.Root,
 };
 
 pub const DepositMessage = struct {
@@ -128,21 +109,11 @@ pub const AttesterSlashing = struct {
     attestation_2: ?*IndexedAttestation,
 };
 
-pub fn AttestationType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        aggregation_bits: std.StaticBitSet(T.MAX_VALIDATORS_PER_COMMITTEE),
-        data: ?*AttestationData,
-        signature: primitives.BLSSignature,
-        committee_bits: std.StaticBitSet(T.MAX_COMMITTEES_PER_SLOT),
-    };
-}
-
-pub const AttestationMainnet = AttestationType(preset.mainnet_preset);
-pub const AttestationMinimal = AttestationType(preset.minimal_preset);
-
-pub const Attestation = union(preset.Presets) {
-    mainnet: AttestationMainnet,
-    minimal: AttestationMinimal,
+pub const Attestation = struct {
+    aggregation_bits: std.DynamicBitSet,
+    data: ?*AttestationData,
+    signature: primitives.BLSSignature,
+    committee_bits: std.DynamicBitSet,
 };
 
 pub const Deposit = struct {
@@ -182,34 +153,14 @@ pub const AggregateAndProof = struct {
     selection_proof: primitives.BLSSignature,
 };
 
-pub fn SyncAggregateType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        sync_committee_bits: std.StaticBitSet(T.SYNC_COMMITTEE_SIZE),
-        sync_committee_signature: primitives.BLSSignature,
-    };
-}
-
-pub const SyncAggregateMainnet = SyncAggregateType(preset.mainnet_preset);
-pub const SyncAggregateMinimal = SyncAggregateType(preset.minimal_preset);
-
-pub const SyncAggregate = union(preset.Presets) {
-    mainnet: SyncAggregateMainnet,
-    minimal: SyncAggregateMinimal,
+pub const SyncAggregate = struct {
+    sync_committee_bits: std.DynamicBitSet,
+    sync_committee_signature: primitives.BLSSignature,
 };
 
-pub fn SyncCommitteeType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        pubkeys: [T.SYNC_COMMITTEE_SIZE]primitives.BLSPubkey,
-        aggregate_pubkey: primitives.BLSPubkey,
-    };
-}
-
-pub const SyncCommitteeMainnet = SyncCommitteeType(preset.mainnet_preset);
-pub const SyncCommitteeMinimal = SyncCommitteeType(preset.minimal_preset);
-
-pub const SyncCommittee = union(preset.Presets) {
-    mainnet: SyncCommitteeMainnet,
-    minimal: SyncCommitteeMinimal,
+pub const SyncCommittee = struct {
+    pubkeys: []primitives.BLSPubkey,
+    aggregate_pubkey: primitives.BLSPubkey,
 };
 
 pub const SyncCommitteeMessage = struct {
@@ -219,22 +170,12 @@ pub const SyncCommitteeMessage = struct {
     signature: primitives.BLSSignature,
 };
 
-pub fn SyncCommitteeContributionType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        slot: primitives.Slot,
-        beacon_block_root: primitives.Root,
-        subcommittee_index: u64,
-        aggregation_bits: std.StaticBitSet(T.SYNC_COMMITTEE_SIZE / constants.SYNC_COMMITTEE_SUBNET_COUNT),
-        signature: primitives.BLSSignature,
-    };
-}
-
-pub const SyncCommitteeContributionMainnet = SyncCommitteeContributionType(preset.mainnet_preset);
-pub const SyncCommitteeContributionMinimal = SyncCommitteeContributionType(preset.minimal_preset);
-
-pub const SyncCommitteeContribution = union(preset.Presets) {
-    mainnet: SyncCommitteeContributionMainnet,
-    minimal: SyncCommitteeContributionMinimal,
+pub const SyncCommitteeContribution = struct {
+    slot: primitives.Slot,
+    beacon_block_root: primitives.Root,
+    subcommittee_index: u64,
+    aggregation_bits: std.DynamicBitSet,
+    signature: primitives.BLSSignature,
 };
 
 pub const ContributionAndProof = struct {
@@ -329,16 +270,14 @@ pub const HistoricalSummary = struct {
     state_summary_root: primitives.Root,
 };
 
-pub fn BlobSidecar(comptime T: preset.BeaconPreset) type {
-    return struct {
-        index: primitives.BlobIndex,
-        blob: primitives.Blob,
-        kzg_commitment: primitives.KZGCommitment,
-        kzg_proof: primitives.KZGProof,
-        signed_block_header: ?*SignedBeaconBlockHeader,
-        kzg_commitment_inclusion_proof: [T.KZG_COMMITMENT_INCLUSION_PROOF_DEPTH]primitives.Bytes32,
-    };
-}
+pub const BlobSidecar = struct {
+    index: primitives.BlobIndex,
+    blob: primitives.Blob,
+    kzg_commitment: primitives.KZGCommitment,
+    kzg_proof: primitives.KZGProof,
+    signed_block_header: ?*SignedBeaconBlockHeader,
+    kzg_commitment_inclusion_proof: []primitives.Bytes32,
+};
 
 pub const BlobIdentifier = struct {
     block_root: primitives.Root,
