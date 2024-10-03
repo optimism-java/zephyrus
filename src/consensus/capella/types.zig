@@ -3,6 +3,37 @@ pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
 
+pub const HistoricalSummary = struct {
+    // HistoricalSummary matches the components of the phase0 HistoricalBatch
+    // making the two hash_tree_root-compatible.
+    block_summary_root: primitives.Root,
+    state_summary_root: primitives.Root,
+};
+
+pub const LightClientHeader = struct {
+    beacon: ?*consensus.BeaconBlockHeader,
+    execution: ?*consensus.ExecutionPayloadHeader,
+    execution_branch: primitives.ExecutionBranch,
+};
+
+pub const Withdrawal = struct {
+    index: primitives.WithdrawalIndex,
+    validator_index: primitives.ValidatorIndex,
+    address: primitives.ExecutionAddress,
+    amount: primitives.Gwei,
+};
+
+pub const BLSToExecutionChange = struct {
+    validator_index: primitives.ValidatorIndex,
+    from_bls_pubkey: primitives.BLSPubkey,
+    to_execution_address: primitives.ExecutionAddress,
+};
+
+pub const SignedBLSToExecutionChange = struct {
+    message: ?*consensus.BLSToExecutionChange,
+    signature: primitives.BLSSignature,
+};
+
 pub const ExecutionPayloadHeader = struct {
     parent_hash: primitives.Hash32,
     fee_recipient: primitives.ExecutionAddress,
@@ -47,17 +78,17 @@ pub const BeaconBlockBody = struct {
     eth1_data: *consensus.Eth1Data, // Eth1 data vote
     graffiti: primitives.Bytes32, // Arbitrary data
     // Operations
-    proposer_slashings: []*consensus.ProposerSlashing,
-    attester_slashings: []*consensus.AttesterSlashing,
-    attestations: []*consensus.Attestation,
-    deposits: []*consensus.Deposit,
-    voluntary_exits: []*consensus.SignedVoluntaryExit,
+    proposer_slashings: []consensus.ProposerSlashing,
+    attester_slashings: []consensus.AttesterSlashing,
+    attestations: []consensus.Attestation,
+    deposits: []consensus.Deposit,
+    voluntary_exits: []consensus.SignedVoluntaryExit,
     sync_aggregate: ?*consensus.SyncAggregate,
-    execution_payload: ?*ExecutionPayload,
-    bls_to_execution_changes: []*consensus.SignedBLSToExecutionChange,
+    execution_payload: ?*consensus.ExecutionPayload,
+    bls_to_execution_changes: []consensus.SignedBLSToExecutionChange,
 };
 
-const BeaconState = struct {
+pub const BeaconState = struct {
     genesis_time: u64,
     genesis_validators_root: primitives.Root,
     slot: primitives.Slot,
@@ -67,14 +98,14 @@ const BeaconState = struct {
     state_roots: []primitives.Root,
     historical_roots: []primitives.Root,
     eth1_data: ?*consensus.Eth1Data,
-    eth1_data_votes: []*consensus.Eth1Data,
+    eth1_data_votes: []consensus.Eth1Data,
     eth1_deposit_index: u64,
-    validators: []*consensus.Validator,
+    validators: []consensus.Validator,
     balances: []primitives.Gwei,
     randao_mixes: []primitives.Bytes32,
     slashings: []primitives.Gwei,
-    previous_epoch_attestations: []*consensus.PendingAttestation,
-    current_epoch_attestations: []*consensus.PendingAttestation,
+    previous_epoch_attestations: []consensus.PendingAttestation,
+    current_epoch_attestations: []consensus.PendingAttestation,
     justification_bits: []bool,
     previous_justified_checkpoint: *consensus.Checkpoint,
     current_justified_checkpoint: *consensus.Checkpoint,
@@ -82,10 +113,10 @@ const BeaconState = struct {
     inactivity_scores: []u64,
     current_sync_committee: ?*consensus.SyncCommittee,
     next_sync_committee: ?*consensus.SyncCommittee,
-    latest_execution_payload_header: ?*ExecutionPayloadHeader,
+    latest_execution_payload_header: ?*consensus.ExecutionPayloadHeader,
     next_withdrawal_index: primitives.WithdrawalIndex,
     next_withdrawal_validator_index: primitives.ValidatorIndex,
-    historical_summaries: []*consensus.HistoricalSummary,
+    historical_summaries: []consensus.HistoricalSummary,
 };
 
 test "test ExecutionPayloadHeader" {
@@ -185,4 +216,54 @@ test "test BeaconState" {
     };
 
     try std.testing.expectEqual(state.genesis_time, 0);
+}
+
+test "test LightClientHeader" {
+    const header = LightClientHeader{
+        .beacon = null,
+        .execution = null,
+        .execution_branch = undefined,
+    };
+
+    try std.testing.expectEqual(header.beacon, null);
+    try std.testing.expectEqual(header.execution, null);
+}
+
+test "test Withdrawal" {
+    const withdrawal = Withdrawal{
+        .index = 0,
+        .validator_index = 0,
+        .address = undefined,
+        .amount = 0,
+    };
+
+    try std.testing.expectEqual(withdrawal.index, 0);
+}
+
+test "test BLSToExecutionChange" {
+    const change = BLSToExecutionChange{
+        .validator_index = 0,
+        .from_bls_pubkey = undefined,
+        .to_execution_address = undefined,
+    };
+
+    try std.testing.expectEqual(change.validator_index, 0);
+}
+
+test "test SignedBLSToExecutionChange" {
+    const change = SignedBLSToExecutionChange{
+        .message = null,
+        .signature = undefined,
+    };
+
+    try std.testing.expectEqual(change.message, null);
+}
+
+test "test HistoricalSummary" {
+    const summary = HistoricalSummary{
+        .block_summary_root = undefined,
+        .state_summary_root = undefined,
+    };
+
+    try std.testing.expectEqual(summary.block_summary_root.len, 32);
 }

@@ -3,6 +3,12 @@ pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
 
+pub const PowBlock = struct {
+    block_hash: primitives.Hash32,
+    parent_hash: primitives.Hash32,
+    total_difficulty: u256,
+};
+
 pub const ExecutionPayloadHeader = struct {
     parent_hash: primitives.Hash32,
     fee_recipient: primitives.ExecutionAddress,
@@ -45,16 +51,16 @@ pub const BeaconBlockBody = struct {
     eth1_data: *consensus.Eth1Data, // Eth1 data vote
     graffiti: primitives.Bytes32, // Arbitrary data
     // Operations
-    proposer_slashings: []*consensus.ProposerSlashing,
-    attester_slashings: []*consensus.AttesterSlashing,
-    attestations: []*consensus.Attestation,
-    deposits: []*consensus.Deposit,
-    voluntary_exits: []*consensus.SignedVoluntaryExit,
+    proposer_slashings: []consensus.ProposerSlashing,
+    attester_slashings: []consensus.AttesterSlashing,
+    attestations: []consensus.Attestation,
+    deposits: []consensus.Deposit,
+    voluntary_exits: []consensus.SignedVoluntaryExit,
     sync_aggregate: ?*consensus.SyncAggregate,
-    execution_payload: ?*ExecutionPayload,
+    execution_payload: ?*consensus.ExecutionPayload,
 };
 
-const BeaconState = struct {
+pub const BeaconState = struct {
     genesis_time: u64,
     genesis_validators_root: primitives.Root,
     slot: primitives.Slot,
@@ -64,14 +70,14 @@ const BeaconState = struct {
     state_roots: []primitives.Root,
     historical_roots: []primitives.Root,
     eth1_data: ?*consensus.Eth1Data,
-    eth1_data_votes: []*consensus.Eth1Data,
+    eth1_data_votes: []consensus.Eth1Data,
     eth1_deposit_index: u64,
-    validators: []*consensus.Validator,
+    validators: []consensus.Validator,
     balances: []primitives.Gwei,
     randao_mixes: []primitives.Bytes32,
     slashings: []primitives.Gwei,
-    previous_epoch_attestations: []*consensus.PendingAttestation,
-    current_epoch_attestations: []*consensus.PendingAttestation,
+    previous_epoch_attestations: []consensus.PendingAttestation,
+    current_epoch_attestations: []consensus.PendingAttestation,
     justification_bits: []bool,
     previous_justified_checkpoint: *consensus.Checkpoint,
     current_justified_checkpoint: *consensus.Checkpoint,
@@ -79,7 +85,7 @@ const BeaconState = struct {
     inactivity_scores: []u64,
     current_sync_committee: ?*consensus.SyncCommittee,
     next_sync_committee: ?*consensus.SyncCommittee,
-    latest_execution_payload_header: ?*ExecutionPayloadHeader,
+    latest_execution_payload_header: ?*consensus.ExecutionPayloadHeader,
 };
 
 test "test ExecutionPayloadHeader" {
@@ -172,4 +178,15 @@ test "test BeaconState" {
     };
 
     try std.testing.expectEqual(state.genesis_time, 0);
+}
+
+test "test PowBlock" {
+    const block = PowBlock{
+        .block_hash = undefined,
+        .parent_hash = undefined,
+        .total_difficulty = 0,
+    };
+
+    try std.testing.expectEqual(block.block_hash.len, 32);
+    try std.testing.expectEqual(block.total_difficulty, 0);
 }
