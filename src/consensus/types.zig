@@ -430,6 +430,16 @@ pub const BeaconState = union(primitives.ForkType) {
     capella: capella.BeaconState,
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
+
+    pub fn finalizedCheckpointEpoch(self: *const BeaconState) primitives.Epoch {
+        return switch (self.*) {
+            inline else => |state| getCheckpointEpoch(state.finalized_checkpoint),
+        };
+    }
+
+    fn getCheckpointEpoch(checkpoint: ?*Checkpoint) primitives.Epoch {
+        return if (checkpoint) |c| c.epoch else @as(primitives.Epoch, 0);
+    }
 };
 
 test "test Attestation" {
@@ -856,4 +866,19 @@ test "test BeaconState" {
     };
 
     try std.testing.expectEqual(state.phase0.genesis_time, 0);
+}
+
+test "test Validator" {
+    const validator = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+
+    try std.testing.expectEqual(validator.effective_balance, 0);
 }

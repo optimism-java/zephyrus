@@ -1,5 +1,5 @@
 const std = @import("std");
-pub const primitives = @import("../../primitives/types.zig");
+const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");

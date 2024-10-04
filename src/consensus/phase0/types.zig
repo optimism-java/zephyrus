@@ -42,7 +42,7 @@ pub const BeaconState = struct {
     justification_bits: []bool,
     previous_justified_checkpoint: *consensus.Checkpoint,
     current_justified_checkpoint: *consensus.Checkpoint,
-    finalized_checkpoint: *consensus.Checkpoint,
+    finalized_checkpoint: ?*consensus.Checkpoint,
 };
 
 test "test BeaconState" {

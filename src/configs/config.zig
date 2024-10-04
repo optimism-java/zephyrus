@@ -1,5 +1,33 @@
 const std = @import("std");
 const primitives = @import("../primitives/types.zig");
+const preset = @import("../presets/preset.zig");
+
+pub const ActiveConfig = struct {
+    var config: Config = undefined;
+    var mutex = std.Thread.Mutex{};
+    var is_initialized = std.atomic.Value(bool).init(false);
+
+    pub fn set(presets: preset.Presets) void {
+        if (is_initialized.swap(true, .acquire)) {
+            return;
+        }
+
+        mutex.lock();
+        defer mutex.unlock();
+
+        config = switch (presets) {
+            .mainnet => mainnet_config,
+            .minimal => minimal_config,
+        };
+    }
+
+    pub fn get() Config {
+        if (!is_initialized.load(.acquire)) {
+            @panic("ActiveConfig not initialized");
+        }
+        return config;
+    }
+};
 
 pub const Config = struct {
     PRESET_BASE: []const u8,
@@ -237,4 +265,10 @@ test "minimal config has correct MAX_PER_EPOCH_ACTIVATION_CHURN_LIMIT" {
 
 test "minimal config has correct MIN_PER_EPOCH_CHURN_LIMIT_ELECTRA" {
     try std.testing.expectEqual(minimal_config.MIN_PER_EPOCH_CHURN_LIMIT_ELECTRA, 64000000000);
+}
+
+test "test ActiveConfig" {
+    ActiveConfig.set(preset.Presets.mainnet);
+    const active_config = ActiveConfig.get();
+    try std.testing.expectEqual(active_config.PRESET_BASE, "mainnet");
 }

@@ -1,6 +1,33 @@
 const std = @import("std");
 const primitives = @import("../primitives/types.zig");
 
+pub const ActivePreset = struct {
+    var preset: BeaconPreset = undefined;
+    var mutex = std.Thread.Mutex{};
+    var is_initialized = std.atomic.Value(bool).init(false);
+
+    pub fn set(presets: Presets) void {
+        if (is_initialized.swap(true, .acquire)) {
+            return;
+        }
+
+        mutex.lock();
+        defer mutex.unlock();
+
+        preset = switch (presets) {
+            .mainnet => mainnet_preset,
+            .minimal => minimal_preset,
+        };
+    }
+
+    pub fn get() BeaconPreset {
+        if (!is_initialized.load(.acquire)) {
+            @panic("ActivePreset not initialized");
+        }
+        return preset;
+    }
+};
+
 pub const Presets = enum {
     mainnet,
     minimal,
@@ -327,4 +354,10 @@ test "minimal preset" {
     try std.testing.expectEqual(minimal_preset.MAX_EFFECTIVE_BALANCE_ELECTRA, 2048000000000);
     try std.testing.expectEqual(minimal_preset.MIN_SLASHING_PENALTY_QUOTIENT_ELECTRA, 4096);
     try std.testing.expectEqual(minimal_preset.MIN_ACTIVATION_BALANCE, 32000000000);
+}
+
+test "test ActivePreset" {
+    ActivePreset.set(Presets.mainnet);
+    const active_preset = ActivePreset.get();
+    try std.testing.expectEqual(active_preset.MAX_BYTES_PER_TRANSACTION, 1073741824);
 }
