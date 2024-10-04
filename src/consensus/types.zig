@@ -9,6 +9,8 @@ const capella = @import("../consensus/capella/types.zig");
 const deneb = @import("../consensus/deneb/types.zig");
 const electra = @import("../consensus/electra/types.zig");
 
+pub const NonExistType = struct {};
+
 pub const Fork = struct {
     previous_version: primitives.Version,
     current_version: primitives.Version,
@@ -132,7 +134,7 @@ pub const VoluntaryExit = struct {
 };
 
 pub const SignedVoluntaryExit = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.SignedVoluntaryExit,
     bellatrix: altair.SignedVoluntaryExit,
     capella: altair.SignedVoluntaryExit,
@@ -163,7 +165,7 @@ pub const AggregateAndProof = struct {
 };
 
 pub const SyncAggregate = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.SyncAggregate,
     bellatrix: altair.SyncAggregate,
     capella: altair.SyncAggregate,
@@ -172,7 +174,7 @@ pub const SyncAggregate = union(primitives.ForkType) {
 };
 
 pub const SyncCommittee = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.SyncCommittee,
     bellatrix: altair.SyncCommittee,
     capella: altair.SyncCommittee,
@@ -181,7 +183,7 @@ pub const SyncCommittee = union(primitives.ForkType) {
 };
 
 pub const SyncCommitteeMessage = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.SyncCommitteeMessage,
     bellatrix: altair.SyncCommitteeMessage,
     capella: altair.SyncCommitteeMessage,
@@ -190,7 +192,7 @@ pub const SyncCommitteeMessage = union(primitives.ForkType) {
 };
 
 pub const SyncCommitteeContribution = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.SyncCommitteeContribution,
     bellatrix: altair.SyncCommitteeContribution,
     capella: altair.SyncCommitteeContribution,
@@ -199,7 +201,7 @@ pub const SyncCommitteeContribution = union(primitives.ForkType) {
 };
 
 pub const ContributionAndProof = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.ContributionAndProof,
     bellatrix: altair.ContributionAndProof,
     capella: altair.ContributionAndProof,
@@ -208,7 +210,7 @@ pub const ContributionAndProof = union(primitives.ForkType) {
 };
 
 pub const SignedContributionAndProof = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.SignedContributionAndProof,
     bellatrix: altair.SignedContributionAndProof,
     capella: altair.SignedContributionAndProof,
@@ -244,8 +246,8 @@ pub const SyncAggregatorSelectionData = struct {
 };
 
 pub const ExecutionPayloadHeader = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
+    phase0: NonExistType,
+    altair: NonExistType,
     bellatrix: bellatrix.ExecutionPayloadHeader,
     capella: capella.ExecutionPayloadHeader,
     deneb: deneb.ExecutionPayloadHeader,
@@ -253,8 +255,8 @@ pub const ExecutionPayloadHeader = union(primitives.ForkType) {
 };
 
 pub const ExecutionPayload = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
+    phase0: NonExistType,
+    altair: NonExistType,
     bellatrix: bellatrix.ExecutionPayload,
     capella: capella.ExecutionPayload,
     deneb: deneb.ExecutionPayload,
@@ -262,7 +264,7 @@ pub const ExecutionPayload = union(primitives.ForkType) {
 };
 
 pub const LightClientHeader = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.LightClientHeader,
     bellatrix: altair.LightClientHeader,
     capella: capella.LightClientHeader,
@@ -271,7 +273,7 @@ pub const LightClientHeader = union(primitives.ForkType) {
 };
 
 pub const LightClientOptimisticUpdate = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.LightClientOptimisticUpdate,
     bellatrix: altair.LightClientOptimisticUpdate,
     capella: altair.LightClientOptimisticUpdate,
@@ -280,7 +282,7 @@ pub const LightClientOptimisticUpdate = union(primitives.ForkType) {
 };
 
 pub const LightClientFinalityUpdate = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.LightClientFinalityUpdate,
     bellatrix: altair.LightClientFinalityUpdate,
     capella: altair.LightClientFinalityUpdate,
@@ -289,7 +291,7 @@ pub const LightClientFinalityUpdate = union(primitives.ForkType) {
 };
 
 pub const LightClientUpdate = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.LightClientUpdate,
     bellatrix: altair.LightClientUpdate,
     capella: altair.LightClientUpdate,
@@ -298,7 +300,7 @@ pub const LightClientUpdate = union(primitives.ForkType) {
 };
 
 pub const LightClientBootstrap = union(primitives.ForkType) {
-    phase0: type,
+    phase0: NonExistType,
     altair: altair.LightClientBootstrap,
     bellatrix: altair.LightClientBootstrap,
     capella: altair.LightClientBootstrap,
@@ -307,8 +309,8 @@ pub const LightClientBootstrap = union(primitives.ForkType) {
 };
 
 pub const PowBlock = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
+    phase0: NonExistType,
+    altair: NonExistType,
     bellatrix: bellatrix.PowBlock,
     capella: bellatrix.PowBlock,
     deneb: bellatrix.PowBlock,
@@ -316,110 +318,110 @@ pub const PowBlock = union(primitives.ForkType) {
 };
 
 pub const Withdrawal = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
     capella: capella.Withdrawal,
     deneb: capella.Withdrawal,
     electra: capella.Withdrawal,
 };
 
 pub const BLSToExecutionChange = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
     capella: capella.BLSToExecutionChange,
     deneb: capella.BLSToExecutionChange,
     electra: capella.BLSToExecutionChange,
 };
 
 pub const SignedBLSToExecutionChange = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
     capella: capella.SignedBLSToExecutionChange,
     deneb: capella.SignedBLSToExecutionChange,
     electra: capella.SignedBLSToExecutionChange,
 };
 
 pub const HistoricalSummary = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
     capella: capella.HistoricalSummary,
     deneb: capella.HistoricalSummary,
     electra: capella.HistoricalSummary,
 };
 
 pub const BlobSidecar = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
     deneb: deneb.BlobSidecar,
     electra: deneb.BlobSidecar,
 };
 
 pub const BlobIdentifier = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
     deneb: deneb.BlobIdentifier,
     electra: deneb.BlobIdentifier,
 };
 
 pub const DepositRequest = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
-    deneb: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
+    deneb: NonExistType,
     electra: electra.DepositRequest,
 };
 
 pub const PendingBalanceDeposit = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
-    deneb: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
+    deneb: NonExistType,
     electra: electra.PendingBalanceDeposit,
 };
 
 pub const PendingPartialWithdrawal = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
-    deneb: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
+    deneb: NonExistType,
     electra: electra.PendingPartialWithdrawal,
 };
 
 pub const WithdrawalRequest = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
-    deneb: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
+    deneb: NonExistType,
     electra: electra.WithdrawalRequest,
 };
 
 pub const ConsolidationRequest = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
-    deneb: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
+    deneb: NonExistType,
     electra: electra.ConsolidationRequest,
 };
 
 pub const PendingConsolidation = union(primitives.ForkType) {
-    phase0: type,
-    altair: type,
-    bellatrix: type,
-    capella: type,
-    deneb: type,
+    phase0: NonExistType,
+    altair: NonExistType,
+    bellatrix: NonExistType,
+    capella: NonExistType,
+    deneb: NonExistType,
     electra: electra.PendingConsolidation,
 };
 
@@ -430,6 +432,12 @@ pub const BeaconState = union(primitives.ForkType) {
     capella: capella.BeaconState,
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
+
+    pub fn validators(self: *const BeaconState) []Validator {
+        return switch (self.*) {
+            inline else => |state| state.validators,
+        };
+    }
 
     pub fn finalizedCheckpointEpoch(self: *const BeaconState) primitives.Epoch {
         return switch (self.*) {
@@ -466,10 +474,10 @@ test "test Attestation" {
 
 test "test SignedVoluntaryExit" {
     const exit = SignedVoluntaryExit{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(exit.phase0, type);
+    try std.testing.expectEqual(exit.phase0, NonExistType{});
 
     const exit1 = SignedVoluntaryExit{
         .altair = altair.SignedVoluntaryExit{
@@ -483,10 +491,10 @@ test "test SignedVoluntaryExit" {
 
 test "test SyncAggregate" {
     const aggregate = SyncAggregate{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(aggregate.phase0, type);
+    try std.testing.expectEqual(aggregate.phase0, NonExistType{});
 
     const aggregate1 = SyncAggregate{
         .altair = altair.SyncAggregate{
@@ -554,10 +562,10 @@ test "test SignedBeaconBlockHeader" {
 
 test "test LightClientHeader" {
     const header = LightClientHeader{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(header.phase0, type);
+    try std.testing.expectEqual(header.phase0, NonExistType{});
 
     const header1 = LightClientHeader{
         .altair = altair.LightClientHeader{
@@ -570,10 +578,10 @@ test "test LightClientHeader" {
 
 test "test LightClientOptimisticUpdate" {
     const update = LightClientOptimisticUpdate{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(update.phase0, type);
+    try std.testing.expectEqual(update.phase0, NonExistType{});
 
     const update1 = LightClientOptimisticUpdate{
         .altair = altair.LightClientOptimisticUpdate{
@@ -588,10 +596,10 @@ test "test LightClientOptimisticUpdate" {
 
 test "test LightClientFinalityUpdate" {
     const update = LightClientFinalityUpdate{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(update.phase0, type);
+    try std.testing.expectEqual(update.phase0, NonExistType{});
 
     const finality_branch = primitives.FinalityBranch{
         .altair = [_][32]u8{
@@ -614,10 +622,10 @@ test "test LightClientFinalityUpdate" {
 
 test "test LightClientUpdate" {
     const update = LightClientUpdate{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(update.phase0, type);
+    try std.testing.expectEqual(update.phase0, NonExistType{});
 
     const next_sync_committee_branch = primitives.NextSyncCommitteeBranch{
         .altair = [_][32]u8{
@@ -648,10 +656,10 @@ test "test LightClientUpdate" {
 
 test "test LightClientBootstrap" {
     const bootstrap = LightClientBootstrap{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(bootstrap.phase0, type);
+    try std.testing.expectEqual(bootstrap.phase0, NonExistType{});
 
     const current_sync_committee_branch = primitives.CurrentSyncCommitteeBranch{
         .altair = [_][32]u8{
@@ -672,10 +680,10 @@ test "test LightClientBootstrap" {
 
 test "test PowBlock" {
     const block = PowBlock{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(block.phase0, type);
+    try std.testing.expectEqual(block.phase0, NonExistType{});
 
     const block1 = PowBlock{
         .bellatrix = bellatrix.PowBlock{
@@ -690,10 +698,10 @@ test "test PowBlock" {
 
 test "test Withdrawal" {
     const withdrawal = Withdrawal{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(withdrawal.phase0, type);
+    try std.testing.expectEqual(withdrawal.phase0, NonExistType{});
 
     const withdrawal1 = Withdrawal{
         .capella = capella.Withdrawal{
@@ -709,10 +717,10 @@ test "test Withdrawal" {
 
 test "test BLSToExecutionChange" {
     const change = BLSToExecutionChange{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(change.phase0, type);
+    try std.testing.expectEqual(change.phase0, NonExistType{});
 
     const change1 = BLSToExecutionChange{
         .capella = capella.BLSToExecutionChange{
@@ -727,10 +735,10 @@ test "test BLSToExecutionChange" {
 
 test "test SignedBLSToExecutionChange" {
     const change = SignedBLSToExecutionChange{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(change.phase0, type);
+    try std.testing.expectEqual(change.phase0, NonExistType{});
 
     const change1 = SignedBLSToExecutionChange{
         .capella = capella.SignedBLSToExecutionChange{
@@ -755,10 +763,10 @@ test "test HistoricalSummary" {
 
 test "test ExecutionPayload" {
     const payload = ExecutionPayload{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(payload.phase0, type);
+    try std.testing.expectEqual(payload.phase0, NonExistType{});
 
     const payload1 = ExecutionPayload{
         .capella = capella.ExecutionPayload{
@@ -785,10 +793,10 @@ test "test ExecutionPayload" {
 
 test "test BlobSidecar" {
     const sidecar = BlobSidecar{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(sidecar.phase0, type);
+    try std.testing.expectEqual(sidecar.phase0, NonExistType{});
 
     const sidecar1 = BlobSidecar{
         .deneb = deneb.BlobSidecar{
@@ -806,10 +814,10 @@ test "test BlobSidecar" {
 
 test "test BlobIdentifier" {
     const identifier = BlobIdentifier{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(identifier.phase0, type);
+    try std.testing.expectEqual(identifier.phase0, NonExistType{});
 
     const identifier1 = BlobIdentifier{
         .deneb = deneb.BlobIdentifier{
@@ -823,10 +831,10 @@ test "test BlobIdentifier" {
 
 test "test PendingConsolidation" {
     const consolidation = PendingConsolidation{
-        .phase0 = type,
+        .phase0 = NonExistType{},
     };
 
-    try std.testing.expectEqual(consolidation.phase0, type);
+    try std.testing.expectEqual(consolidation.phase0, NonExistType{});
 
     const consolidation1 = PendingConsolidation{
         .electra = electra.PendingConsolidation{

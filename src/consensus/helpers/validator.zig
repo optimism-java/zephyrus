@@ -5,6 +5,8 @@ const configs = @import("../../configs/config.zig");
 const constants = @import("../../primitives/constants.zig");
 const preset = @import("../../presets/preset.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");
+const altair = @import("../../consensus/altair/types.zig");
+const Allocator = std.mem.Allocator;
 
 /// Check if a validator is active at a given epoch.
 /// A validator is active if the current epoch is greater than or equal to the validator's activation epoch and less than the validator's exit epoch.
@@ -75,6 +77,32 @@ pub fn isEligibleForActivation(state: *const consensus.BeaconState, validator: *
 ///    return not validator.slashed and validator.activation_epoch <= epoch < validator.withdrawable_epoch
 pub fn isSlashableValidator(validator: *const consensus.Validator, epoch: primitives.Epoch) bool {
     return (!validator.slashed) and (validator.activation_epoch <= epoch and epoch < validator.withdrawable_epoch);
+}
+
+/// getActiveValidatorIndices returns the indices of active validators at a given epoch.
+/// @param state The beacon state.
+/// @param epoch The epoch to check.
+/// @param allocator The allocator to use.
+/// @return The indices of active validators.
+/// Spec pseudocode definition:
+///
+/// def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
+///    """
+///    Return the sequence of active validator indices at ``epoch``.
+///   """
+///     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
+// Note: The caller is responsible for freeing the returned slice using the same allocator.
+pub fn getActiveValidatorIndices(state: *const consensus.BeaconState, epoch: primitives.Epoch, allocator: Allocator) ![]primitives.ValidatorIndex {
+    var active_validators = std.ArrayList(primitives.ValidatorIndex).init(allocator);
+    defer active_validators.deinit();
+
+    for (state.validators(), 0..) |v, i| {
+        if (isActiveValidator(&v, epoch)) {
+            try active_validators.append(@intCast(i));
+        }
+    }
+
+    return active_validators.toOwnedSlice();
 }
 
 test "test isActiveValidator" {
@@ -170,6 +198,7 @@ test "test isEligibleForActivation" {
 }
 
 test "test isSlashableValidator" {
+    preset.ActivePreset.set(preset.Presets.mainnet);
     const validator = consensus.Validator{
         .pubkey = undefined,
         .withdrawal_credentials = undefined,
@@ -197,4 +226,67 @@ test "test isSlashableValidator" {
     const epoch2: primitives.Epoch = 5;
     const result2 = isSlashableValidator(&validator2, epoch2);
     try std.testing.expectEqual(result2, false);
+}
+
+const FINALIZED_CHECKPOINT_EPOCH: primitives.Epoch = 5;
+const VALIDATOR_EXIT_EPOCH: primitives.Epoch = 10;
+const GENESIS_VALIDATORS_ROOT_SIZE = 32;
+
+fn createTestValidator() consensus.Validator {
+    return consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = VALIDATOR_EXIT_EPOCH,
+        .withdrawable_epoch = VALIDATOR_EXIT_EPOCH,
+    };
+}
+
+test "test_getActiveValidatorIndices_withTwoActiveValidators" {
+    var finalized_checkpoint = consensus.Checkpoint{
+        .epoch = FINALIZED_CHECKPOINT_EPOCH,
+        .root = .{0} ** 32,
+    };
+
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+
+    try validators.append(createTestValidator());
+    try validators.append(createTestValidator());
+
+    const state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** GENESIS_VALIDATORS_ROOT_SIZE,
+            .slot = 0,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = undefined,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = &finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    const indices = try getActiveValidatorIndices(&state, FINALIZED_CHECKPOINT_EPOCH, std.testing.allocator);
+    defer std.testing.allocator.free(indices);
+    try std.testing.expectEqual(indices.len, 2);
 }
