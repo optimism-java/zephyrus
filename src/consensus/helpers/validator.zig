@@ -61,6 +61,22 @@ pub fn isEligibleForActivation(state: *const consensus.BeaconState, validator: *
         validator.activation_epoch == constants.FAR_FUTURE_EPOCH;
 }
 
+/// isSlashableValidator checks if a validator is slashable.
+/// A validator is slashable if it is not yet slashed and is within the range of epochs where it can be withdrawn.
+/// @param validator The validator to check.
+/// @param epoch The epoch to check.
+/// @return True if the validator is slashable, false otherwise.
+/// Spec pseudocode definition:
+///
+/// def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
+///     """
+///    Check if ``validator`` is slashable.
+///    """
+///    return not validator.slashed and validator.activation_epoch <= epoch < validator.withdrawable_epoch
+pub fn isSlashableValidator(validator: *const consensus.Validator, epoch: primitives.Epoch) bool {
+    return (!validator.slashed) and (validator.activation_epoch <= epoch and epoch < validator.withdrawable_epoch);
+}
+
 test "test isActiveValidator" {
     const validator = consensus.Validator{
         .pubkey = undefined,
@@ -150,5 +166,35 @@ test "test isEligibleForActivation" {
     };
 
     const result2 = isEligibleForActivation(&state, &validator2);
+    try std.testing.expectEqual(result2, false);
+}
+
+test "test isSlashableValidator" {
+    const validator = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const epoch: primitives.Epoch = 5;
+    const result = isSlashableValidator(&validator, epoch);
+    try std.testing.expectEqual(result, true);
+
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 5,
+    };
+    const epoch2: primitives.Epoch = 5;
+    const result2 = isSlashableValidator(&validator2, epoch2);
     try std.testing.expectEqual(result2, false);
 }
