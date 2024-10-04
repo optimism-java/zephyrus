@@ -2,6 +2,8 @@ const std = @import("std");
 pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
+const bellatrix = @import("../../consensus/bellatrix/types.zig");
+const altair = @import("../../consensus/altair/types.zig");
 
 pub const HistoricalSummary = struct {
     // HistoricalSummary matches the components of the phase0 HistoricalBatch
@@ -10,11 +12,31 @@ pub const HistoricalSummary = struct {
     state_summary_root: primitives.Root,
 };
 
-pub const LightClientHeader = struct {
-    beacon: ?*consensus.BeaconBlockHeader,
-    execution: ?*consensus.ExecutionPayloadHeader,
-    execution_branch: primitives.ExecutionBranch,
-};
+pub const LightClientHeader = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(altair.LightClientHeader).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "execution",
+                    .type = ?*consensus.ExecutionPayloadHeader,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(?*consensus.ExecutionPayloadHeader),
+                },
+                .{
+                    .name = "execution_branch",
+                    .type = primitives.ExecutionBranch,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(primitives.ExecutionBranch),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
 pub const Withdrawal = struct {
     index: primitives.WithdrawalIndex,
@@ -34,90 +56,91 @@ pub const SignedBLSToExecutionChange = struct {
     signature: primitives.BLSSignature,
 };
 
-pub const ExecutionPayloadHeader = struct {
-    parent_hash: primitives.Hash32,
-    fee_recipient: primitives.ExecutionAddress,
-    state_root: primitives.Root,
-    receipts_root: primitives.Root,
-    logs_bloom: []u8,
-    prev_randao: primitives.Bytes32,
-    block_number: u64,
-    gas_used: u64,
-    gas_limit: u64,
-    timestamp: u64,
-    extra_data: []u8,
-    base_fee_per_gas: u256,
-    // Extra payload fields
-    block_hash: primitives.Hash32,
-    transactions_root: primitives.Root,
-    withdrawals_root: primitives.Root,
-};
+pub const ExecutionPayloadHeader = @Type(.{
+    .@"struct" = .{
+        .layout = .auto,
+        .fields = @typeInfo(bellatrix.ExecutionPayloadHeader).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+            .{
+                .name = "withdrawals_root",
+                .type = primitives.Root,
+                .default_value = null,
+                .is_comptime = false,
+                .alignment = @alignOf(primitives.Root),
+            },
+        },
+        .decls = &.{},
+        .is_tuple = false,
+    },
+});
 
-pub const ExecutionPayload = struct {
-    // Execution block header fields
-    parent_hash: primitives.Hash32,
-    fee_recipient: primitives.ExecutionAddress, // 'beneficiary' in the yellow paper
-    state_root: primitives.Bytes32,
-    receipts_root: primitives.Bytes32,
-    logs_bloom: []u8,
-    prev_randao: primitives.Bytes32, // 'difficulty' in the yellow paper
-    block_number: u64, // 'number' in the yellow paper
-    gas_limit: u64,
-    gas_used: u64,
-    timestamp: u64,
-    extra_data: []u8, // with a maximum length of MAX_EXTRA_DATA_BYTES
-    base_fee_per_gas: u256,
-    // Extra payload fields
-    block_hash: primitives.Hash32, // Hash of execution block
-    transactions: []primitives.Transaction, // with a maximum length of MAX_TRANSACTIONS_PER_PAYLOAD
-    withdrawals: []consensus.Withdrawal, // with a maximum length of MAX_WITHDRAWALS_PER_PAYLOAD
-};
+pub const ExecutionPayload = @Type(.{
+    .@"struct" = .{
+        .layout = .auto,
+        .fields = @typeInfo(bellatrix.ExecutionPayload).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+            .{
+                .name = "withdrawals",
+                .type = []consensus.Withdrawal,
+                .default_value = null,
+                .is_comptime = false,
+                .alignment = @alignOf([]consensus.Withdrawal),
+            },
+        },
+        .decls = &.{},
+        .is_tuple = false,
+    },
+});
 
-pub const BeaconBlockBody = struct {
-    randao_reveal: primitives.BLSSignature,
-    eth1_data: *consensus.Eth1Data, // Eth1 data vote
-    graffiti: primitives.Bytes32, // Arbitrary data
-    // Operations
-    proposer_slashings: []consensus.ProposerSlashing,
-    attester_slashings: []consensus.AttesterSlashing,
-    attestations: []consensus.Attestation,
-    deposits: []consensus.Deposit,
-    voluntary_exits: []consensus.SignedVoluntaryExit,
-    sync_aggregate: ?*consensus.SyncAggregate,
-    execution_payload: ?*consensus.ExecutionPayload,
-    bls_to_execution_changes: []consensus.SignedBLSToExecutionChange,
-};
+pub const BeaconBlockBody = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(bellatrix.BeaconBlockBody).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "bls_to_execution_changes",
+                    .type = []consensus.SignedBLSToExecutionChange,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf([]consensus.SignedBLSToExecutionChange),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
-pub const BeaconState = struct {
-    genesis_time: u64,
-    genesis_validators_root: primitives.Root,
-    slot: primitives.Slot,
-    fork: *consensus.Fork,
-    latest_block_header: consensus.BeaconBlockHeader,
-    block_roots: []primitives.Root,
-    state_roots: []primitives.Root,
-    historical_roots: []primitives.Root,
-    eth1_data: ?*consensus.Eth1Data,
-    eth1_data_votes: []consensus.Eth1Data,
-    eth1_deposit_index: u64,
-    validators: []consensus.Validator,
-    balances: []primitives.Gwei,
-    randao_mixes: []primitives.Bytes32,
-    slashings: []primitives.Gwei,
-    previous_epoch_attestations: []consensus.PendingAttestation,
-    current_epoch_attestations: []consensus.PendingAttestation,
-    justification_bits: []bool,
-    previous_justified_checkpoint: *consensus.Checkpoint,
-    current_justified_checkpoint: *consensus.Checkpoint,
-    finalized_checkpoint: *consensus.Checkpoint,
-    inactivity_scores: []u64,
-    current_sync_committee: ?*consensus.SyncCommittee,
-    next_sync_committee: ?*consensus.SyncCommittee,
-    latest_execution_payload_header: ?*consensus.ExecutionPayloadHeader,
-    next_withdrawal_index: primitives.WithdrawalIndex,
-    next_withdrawal_validator_index: primitives.ValidatorIndex,
-    historical_summaries: []consensus.HistoricalSummary,
-};
+pub const BeaconState = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(bellatrix.BeaconState).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "next_withdrawal_index",
+                    .type = primitives.WithdrawalIndex,
+                    .default_value = @ptrCast(&@as(primitives.WithdrawalIndex, 0)),
+                    .is_comptime = false,
+                    .alignment = @alignOf(primitives.WithdrawalIndex),
+                },
+                .{
+                    .name = "next_withdrawal_validator_index",
+                    .type = primitives.ValidatorIndex,
+                    .default_value = @ptrCast(&@as(primitives.ValidatorIndex, 0)),
+                    .is_comptime = false,
+                    .alignment = @alignOf(primitives.ValidatorIndex),
+                },
+                .{
+                    .name = "historical_summaries",
+                    .type = []consensus.HistoricalSummary,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf([]consensus.HistoricalSummary),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
 test "test ExecutionPayloadHeader" {
     const header = ExecutionPayloadHeader{

@@ -2,6 +2,7 @@ const std = @import("std");
 pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
+const altair = @import("../../consensus/altair/types.zig");
 
 pub const PowBlock = struct {
     block_hash: primitives.Hash32,
@@ -46,47 +47,43 @@ pub const ExecutionPayload = struct {
     transactions: []primitives.Transaction, // with a maximum length of MAX_TRANSACTIONS_PER_PAYLOAD
 };
 
-pub const BeaconBlockBody = struct {
-    randao_reveal: primitives.BLSSignature,
-    eth1_data: *consensus.Eth1Data, // Eth1 data vote
-    graffiti: primitives.Bytes32, // Arbitrary data
-    // Operations
-    proposer_slashings: []consensus.ProposerSlashing,
-    attester_slashings: []consensus.AttesterSlashing,
-    attestations: []consensus.Attestation,
-    deposits: []consensus.Deposit,
-    voluntary_exits: []consensus.SignedVoluntaryExit,
-    sync_aggregate: ?*consensus.SyncAggregate,
-    execution_payload: ?*consensus.ExecutionPayload,
-};
+pub const BeaconBlockBody = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(altair.BeaconBlockBody).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "execution_payload",
+                    .type = ?*consensus.ExecutionPayload,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(?*consensus.ExecutionPayload),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
-pub const BeaconState = struct {
-    genesis_time: u64,
-    genesis_validators_root: primitives.Root,
-    slot: primitives.Slot,
-    fork: *consensus.Fork,
-    latest_block_header: consensus.BeaconBlockHeader,
-    block_roots: []primitives.Root,
-    state_roots: []primitives.Root,
-    historical_roots: []primitives.Root,
-    eth1_data: ?*consensus.Eth1Data,
-    eth1_data_votes: []consensus.Eth1Data,
-    eth1_deposit_index: u64,
-    validators: []consensus.Validator,
-    balances: []primitives.Gwei,
-    randao_mixes: []primitives.Bytes32,
-    slashings: []primitives.Gwei,
-    previous_epoch_attestations: []consensus.PendingAttestation,
-    current_epoch_attestations: []consensus.PendingAttestation,
-    justification_bits: []bool,
-    previous_justified_checkpoint: *consensus.Checkpoint,
-    current_justified_checkpoint: *consensus.Checkpoint,
-    finalized_checkpoint: *consensus.Checkpoint,
-    inactivity_scores: []u64,
-    current_sync_committee: ?*consensus.SyncCommittee,
-    next_sync_committee: ?*consensus.SyncCommittee,
-    latest_execution_payload_header: ?*consensus.ExecutionPayloadHeader,
-};
+pub const BeaconState = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(altair.BeaconState).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "latest_execution_payload_header",
+                    .type = ?*consensus.ExecutionPayloadHeader,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(?*consensus.ExecutionPayloadHeader),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
 test "test ExecutionPayloadHeader" {
     const header = ExecutionPayloadHeader{

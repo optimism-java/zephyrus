@@ -2,6 +2,7 @@ const std = @import("std");
 const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
+const phase0 = @import("../../consensus/phase0/types.zig");
 
 pub const LightClientHeader = struct {
     beacon: ?*consensus.BeaconBlockHeader,
@@ -78,45 +79,57 @@ pub const SignedContributionAndProof = struct {
     signature: primitives.BLSSignature,
 };
 
-pub const BeaconBlockBody = struct {
-    randao_reveal: primitives.BLSSignature,
-    eth1_data: *consensus.Eth1Data, // Eth1 data vote
-    graffiti: primitives.Bytes32, // Arbitrary data
-    // Operations
-    proposer_slashings: []consensus.ProposerSlashing,
-    attester_slashings: []consensus.AttesterSlashing,
-    attestations: []consensus.Attestation,
-    deposits: []consensus.Deposit,
-    voluntary_exits: []consensus.SignedVoluntaryExit,
-    sync_aggregate: ?*consensus.SyncAggregate,
-};
+pub const BeaconBlockBody = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(phase0.BeaconBlockBody).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "sync_aggregate",
+                    .type = ?*consensus.SyncAggregate,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(?*consensus.SyncAggregate),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
-pub const BeaconState = struct {
-    genesis_time: u64,
-    genesis_validators_root: primitives.Root,
-    slot: primitives.Slot,
-    fork: *consensus.Fork,
-    latest_block_header: consensus.BeaconBlockHeader,
-    block_roots: []primitives.Root,
-    state_roots: []primitives.Root,
-    historical_roots: []primitives.Root,
-    eth1_data: ?*consensus.Eth1Data,
-    eth1_data_votes: []consensus.Eth1Data,
-    eth1_deposit_index: u64,
-    validators: []consensus.Validator,
-    balances: []primitives.Gwei,
-    randao_mixes: []primitives.Bytes32,
-    slashings: []primitives.Gwei,
-    previous_epoch_attestations: []consensus.PendingAttestation,
-    current_epoch_attestations: []consensus.PendingAttestation,
-    justification_bits: []bool,
-    previous_justified_checkpoint: *consensus.Checkpoint,
-    current_justified_checkpoint: *consensus.Checkpoint,
-    finalized_checkpoint: *consensus.Checkpoint,
-    inactivity_scores: []u64,
-    current_sync_committee: ?*consensus.SyncCommittee,
-    next_sync_committee: ?*consensus.SyncCommittee,
-};
+pub const BeaconState = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(phase0.BeaconState).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "inactivity_scores",
+                    .type = []u64,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf([]u64),
+                },
+                .{
+                    .name = "current_sync_committee",
+                    .type = ?*consensus.SyncCommittee,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(?*consensus.SyncCommittee),
+                },
+                .{
+                    .name = "next_sync_committee",
+                    .type = ?*consensus.SyncCommittee,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf(?*consensus.SyncCommittee),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
 test "test BeaconState" {
     const state = BeaconState{

@@ -2,6 +2,7 @@ const std = @import("std");
 pub const primitives = @import("../../primitives/types.zig");
 const preset = @import("../../presets/preset.zig");
 const consensus = @import("../../consensus/types.zig");
+const capella = @import("../../consensus/capella/types.zig");
 
 pub const BlobIdentifier = struct {
     block_root: primitives.Root,
@@ -17,64 +18,76 @@ pub const BlobSidecar = struct {
     kzg_commitment_inclusion_proof: []primitives.Bytes32,
 };
 
-pub const ExecutionPayloadHeader = struct {
-    parent_hash: primitives.Hash32,
-    fee_recipient: primitives.ExecutionAddress,
-    state_root: primitives.Root,
-    receipts_root: primitives.Root,
-    logs_bloom: []u8,
-    prev_randao: primitives.Bytes32,
-    block_number: u64,
-    gas_used: u64,
-    gas_limit: u64,
-    timestamp: u64,
-    extra_data: []u8,
-    base_fee_per_gas: u256,
-    // Extra payload fields
-    block_hash: primitives.Hash32,
-    transactions_root: primitives.Root,
-    withdrawals_root: primitives.Root,
-    blob_gas_used: u64,
-    excess_blob_gas: u64,
-};
+pub const ExecutionPayload = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(capella.ExecutionPayload).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "blob_gas_used",
+                    .type = u64,
+                    .default_value = @ptrCast(&@as(u64, 0)),
+                    .is_comptime = false,
+                    .alignment = @alignOf(u64),
+                },
+                .{
+                    .name = "excess_blob_gas",
+                    .type = u64,
+                    .default_value = @ptrCast(&@as(u64, 0)),
+                    .is_comptime = false,
+                    .alignment = @alignOf(u64),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
-pub const ExecutionPayload = struct {
-    // Execution block header fields
-    parent_hash: primitives.Hash32,
-    fee_recipient: primitives.ExecutionAddress, // 'beneficiary' in the yellow paper
-    state_root: primitives.Bytes32,
-    receipts_root: primitives.Bytes32,
-    logs_bloom: []u8,
-    prev_randao: primitives.Bytes32, // 'difficulty' in the yellow paper
-    block_number: u64, // 'number' in the yellow paper
-    gas_limit: u64,
-    gas_used: u64,
-    timestamp: u64,
-    extra_data: []u8, // with a maximum length of MAX_EXTRA_DATA_BYTES
-    base_fee_per_gas: u256,
-    // Extra payload fields
-    block_hash: primitives.Hash32, // Hash of execution block
-    transactions: []primitives.Transaction, // with a maximum length of MAX_TRANSACTIONS_PER_PAYLOAD
-    withdrawals: []consensus.Withdrawal, // with a maximum length of MAX_WITHDRAWALS_PER_PAYLOAD
-    blob_gas_used: u64,
-    excess_blob_gas: u64,
-};
+pub const ExecutionPayloadHeader = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(capella.ExecutionPayloadHeader).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "blob_gas_used",
+                    .type = u64,
+                    .default_value = @ptrCast(&@as(u64, 0)),
+                    .is_comptime = false,
+                    .alignment = @alignOf(u64),
+                },
+                .{
+                    .name = "excess_blob_gas",
+                    .type = u64,
+                    .default_value = @ptrCast(&@as(u64, 0)),
+                    .is_comptime = false,
+                    .alignment = @alignOf(u64),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
-pub const BeaconBlockBody = struct {
-    randao_reveal: primitives.BLSSignature,
-    eth1_data: *consensus.Eth1Data, // Eth1 data vote
-    graffiti: primitives.Bytes32, // Arbitrary data
-    // Operations
-    proposer_slashings: []consensus.ProposerSlashing,
-    attester_slashings: []consensus.AttesterSlashing,
-    attestations: []consensus.Attestation,
-    deposits: []consensus.Deposit,
-    voluntary_exits: []consensus.SignedVoluntaryExit,
-    sync_aggregate: ?*consensus.SyncAggregate,
-    execution_payload: ?*consensus.ExecutionPayload,
-    bls_to_execution_changes: []consensus.SignedBLSToExecutionChange,
-    blob_kzg_commitments: []primitives.KZGCommitment,
-};
+pub const BeaconBlockBody = @Type(
+    .{
+        .@"struct" = .{
+            .layout = .auto,
+            .fields = @typeInfo(capella.BeaconBlockBody).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+                .{
+                    .name = "blob_kzg_commitments",
+                    .type = []primitives.KZGCommitment,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf([]primitives.KZGCommitment),
+                },
+            },
+            .decls = &.{},
+            .is_tuple = false,
+        },
+    },
+);
 
 test "test ExecutionPayloadHeader" {
     const header = ExecutionPayloadHeader{
