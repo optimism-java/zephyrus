@@ -91,7 +91,7 @@ pub fn isSlashableValidator(validator: *const consensus.Validator, epoch: primit
 ///    Return the sequence of active validator indices at ``epoch``.
 ///   """
 ///     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
-// Note: The caller is responsible for freeing the returned slice using the same allocator.
+/// Note: The caller is responsible for freeing the returned slice using the same allocator.
 pub fn getActiveValidatorIndices(state: *const consensus.BeaconState, epoch: primitives.Epoch, allocator: Allocator) ![]primitives.ValidatorIndex {
     var active_validators = std.ArrayList(primitives.ValidatorIndex).init(allocator);
     defer active_validators.deinit();
