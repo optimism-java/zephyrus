@@ -26,6 +26,16 @@ pub const ActivePreset = struct {
         }
         return preset;
     }
+
+    pub fn reset() void {
+        if (!is_initialized.load(.acquire)) return;
+
+        is_initialized.store(false, .release);
+
+        mutex.lock();
+        defer mutex.unlock();
+        preset = undefined;
+    }
 };
 
 pub const Presets = enum {
@@ -358,6 +368,7 @@ test "minimal preset" {
 
 test "test ActivePreset" {
     ActivePreset.set(Presets.mainnet);
+    defer ActivePreset.reset();
     const active_preset = ActivePreset.get();
     try std.testing.expectEqual(active_preset.MAX_BYTES_PER_TRANSACTION, 1073741824);
 }

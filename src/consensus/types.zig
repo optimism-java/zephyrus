@@ -8,6 +8,7 @@ const bellatrix = @import("../consensus/bellatrix/types.zig");
 const capella = @import("../consensus/capella/types.zig");
 const deneb = @import("../consensus/deneb/types.zig");
 const electra = @import("../consensus/electra/types.zig");
+const configs = @import("../configs/config.zig");
 
 pub const NonExistType = struct {};
 
@@ -36,6 +37,74 @@ pub const Validator = struct {
     activation_epoch: primitives.Epoch,
     exit_epoch: primitives.Epoch,
     withdrawable_epoch: primitives.Epoch,
+
+    /// Check if a validator is active at a given epoch.
+    /// A validator is active if the current epoch is greater than or equal to the validator's activation epoch and less than the validator's exit epoch.
+    /// @param epoch The epoch to check.
+    /// @return True if the validator is active, false otherwise.
+    /// Spec pseudocode definition:
+    ///
+    /// def is_active_validator(validator: Validator, epoch: Epoch) -> bool:
+    /// """
+    /// Check if ``validator`` is active.
+    /// """
+    ///    return validator.activation_epoch <= epoch < validator.exit_epoch
+    pub fn isActiveValidator(self: *const Validator, epoch: primitives.Epoch) bool {
+        return self.activation_epoch <= epoch and epoch < self.exit_epoch;
+    }
+
+    /// isEligibleForActivationQueue carries out the logic for IsEligibleForActivationQueue
+    /// Spec pseudocode definition:
+    ///
+    /// def is_eligible_for_activation_queue(validator: Validator) -> bool:
+    ///   """
+    ///   Check if ``validator`` is eligible to be placed into the activation queue.
+    ///   """
+    ///   return (
+    ///       validator.activation_eligibility_epoch == FAR_FUTURE_EPOCH
+    ///       and validator.effective_balance == MAX_EFFECTIVE_BALANCE
+    ///   )
+    pub fn isEligibleForActivationQueue(self: *const Validator) bool {
+        return self.activation_eligibility_epoch == constants.FAR_FUTURE_EPOCH and
+            self.effective_balance == preset.ActivePreset.get().MIN_ACTIVATION_BALANCE;
+    }
+
+    /// isEligibleForActivation checks if a validator is eligible for activation.
+    /// A validator is eligible for activation if it is not yet activated and its activation eligibility epoch is less than or equal to the finalized epoch.
+    /// @param state The beacon state.
+    /// @return True if the validator is eligible for activation, false otherwise.
+    /// Spec pseudocode definition:
+    ///
+    /// def is_eligible_for_activation(state: BeaconState, validator: Validator) -> bool:
+    ///   """
+    ///   Check if ``validator`` is eligible for activation.
+    ///   """
+    ///   return (
+    ///       validator.activation_eligibility_epoch <= state.finalized_checkpoint.epoch
+    ///       and validator.activation_epoch == FAR_FUTURE_EPOCH
+    ///   )
+    pub fn isEligibleForActivation(self: *const Validator, state: *const BeaconState) bool {
+        return
+        // Placement in queue is finalized
+        self.activation_eligibility_epoch <= state.finalizedCheckpointEpoch() and
+            // Has not yet been activated
+            self.activation_epoch == constants.FAR_FUTURE_EPOCH;
+    }
+
+    /// isSlashableValidator checks if a validator is slashable.
+    /// A validator is slashable if it is not yet slashed and is within the range of epochs where it can be withdrawn.
+    /// @param epoch The epoch to check.
+    /// @return True if the validator is slashable, false otherwise.
+    /// Spec pseudocode definition:
+    ///
+    /// def is_slashable_validator(validator: Validator, epoch: Epoch) -> bool:
+    ///     """
+    ///    Check if ``validator`` is slashable.
+    ///    """
+    ///    return not validator.slashed and validator.activation_epoch <= epoch < validator.withdrawable_epoch
+    pub fn isSlashableValidator(self: *const Validator, epoch: primitives.Epoch) bool {
+        return (!self.slashed) and (self.activation_epoch <= epoch and epoch < self.withdrawable_epoch);
+    }
 };
 
 pub const AttestationData = struct {
@@ -433,22 +502,91 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
-    pub fn validators(self: *const BeaconState) []Validator {
+    pub fn slot(self: *const BeaconState) primitives.Slot {
         return switch (self.*) {
-            inline else => |state| state.validators,
+            inline else => |state| state.beacon_state_ssz.slot,
+        };
+    }
+
+    pub fn validators(self: *const BeaconState) []const Validator {
+        return switch (self.*) {
+            inline else => |state| state.beacon_state_ssz.validators,
         };
     }
 
     pub fn finalizedCheckpointEpoch(self: *const BeaconState) primitives.Epoch {
         return switch (self.*) {
-            inline else => |state| getCheckpointEpoch(state.finalized_checkpoint),
+            inline else => |state| getCheckpointEpoch(state.beacon_state_ssz.finalized_checkpoint),
         };
     }
 
-    fn getCheckpointEpoch(checkpoint: ?*Checkpoint) primitives.Epoch {
-        return if (checkpoint) |c| c.epoch else @as(primitives.Epoch, 0);
+    /// getActiveValidatorIndices returns the indices of active validators for the given epoch.
+    /// @param epoch The epoch for which to get the active validator indices.
+    /// @return The indices of active validators for the given epoch.
+    /// Spec pseudocode definition:
+    /// def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
+    /// """
+    /// Return the sequence of active validator indices at ``epoch``.
+    /// """
+    /// return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
+    pub fn getActiveValidatorIndices(self: *const BeaconState, epoch: primitives.Epoch) ![]const primitives.ValidatorIndex {
+        var active_validators = std.ArrayList(primitives.ValidatorIndex).init(self.allocator());
+        errdefer active_validators.deinit();
+
+        for (self.validators(), 0..) |v, i| {
+            if (v.isActiveValidator(epoch)) {
+                try active_validators.append(@as(primitives.Epoch, i));
+            }
+        }
+
+        return active_validators.toOwnedSlice();
+    }
+
+    /// getCurrentEpoch returns the current epoch for the given state.
+    /// @return The current epoch.
+    /// Spec pseudocode definition:
+    /// def get_current_epoch(state: BeaconState) -> Epoch:
+    /// """
+    /// Return the current epoch.
+    /// """
+    /// return compute_epoch_at_slot(state.slot)
+    pub fn getCurrentEpoch(self: *const BeaconState) primitives.Epoch {
+        return primitives.computeEpochAtSlot(self.slot());
+    }
+
+    /// getValidatorChurnLimit returns the validator churn limit for the given state.
+    /// The churn limit is the maximum number of validators who can leave the validator set in one epoch.
+    /// @return The validator churn limit.
+    /// Spec pseudocode definition:
+    /// def get_validator_churn_limit(state: BeaconState) -> uint64:
+    /// """
+    /// Return the validator churn limit for the current epoch.
+    /// """
+    /// active_validator_indices = get_active_validator_indices(state, get_current_epoch(state))
+    /// return max(config.MIN_PER_EPOCH_CHURN_LIMIT, uint64(len(active_validator_indices)) // config.CHURN_LIMIT_QUOTIENT)
+    pub fn getValidatorChurnLimit(self: *const BeaconState) !u64 {
+        const active_validator_indices = try self.getActiveValidatorIndices(self.getCurrentEpoch());
+        defer self.allocator().free(active_validator_indices);
+        const conf = configs.ActiveConfig.get();
+        return @max(conf.MIN_PER_EPOCH_CHURN_LIMIT, @divFloor(@as(u64, active_validator_indices.len), conf.CHURN_LIMIT_QUOTIENT));
+    }
+
+    pub fn allocator(self: *const BeaconState) std.mem.Allocator {
+        return switch (self.*) {
+            inline else => |state| state.allocator,
+        };
+    }
+
+    pub fn deinit(self: *BeaconState) void {
+        switch (self.*) {
+            inline else => |*state| state.deinit(),
+        }
     }
 };
+
+pub fn getCheckpointEpoch(checkpoint: ?*Checkpoint) primitives.Epoch {
+    return if (checkpoint) |c| c.epoch else @as(primitives.Epoch, 0);
+}
 
 test "test Attestation" {
     const attestation = Attestation{
@@ -847,33 +985,38 @@ test "test PendingConsolidation" {
 }
 
 test "test BeaconState" {
+    const state_ssz = phase0.BeaconStateSSZ{
+        .genesis_time = 0,
+        .genesis_validators_root = undefined,
+        .slot = 0,
+        .fork = undefined,
+        .latest_block_header = undefined,
+        .block_roots = undefined,
+        .state_roots = undefined,
+        .historical_roots = undefined,
+        .eth1_data = undefined,
+        .eth1_data_votes = undefined,
+        .eth1_deposit_index = 0,
+        .validators = undefined,
+        .balances = undefined,
+        .randao_mixes = undefined,
+        .slashings = undefined,
+        .previous_epoch_attestations = undefined,
+        .current_epoch_attestations = undefined,
+        .justification_bits = undefined,
+        .previous_justified_checkpoint = undefined,
+        .current_justified_checkpoint = undefined,
+        .finalized_checkpoint = undefined,
+    };
+
     const state = BeaconState{
         .phase0 = phase0.BeaconState{
-            .genesis_time = 0,
-            .genesis_validators_root = undefined,
-            .slot = 0,
-            .fork = undefined,
-            .latest_block_header = undefined,
-            .block_roots = undefined,
-            .state_roots = undefined,
-            .historical_roots = undefined,
-            .eth1_data = undefined,
-            .eth1_data_votes = undefined,
-            .eth1_deposit_index = 0,
-            .validators = undefined,
-            .balances = undefined,
-            .randao_mixes = undefined,
-            .slashings = undefined,
-            .previous_epoch_attestations = undefined,
-            .current_epoch_attestations = undefined,
-            .justification_bits = undefined,
-            .previous_justified_checkpoint = undefined,
-            .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = undefined,
+            .allocator = std.testing.allocator,
+            .beacon_state_ssz = state_ssz,
         },
     };
 
-    try std.testing.expectEqual(state.phase0.genesis_time, 0);
+    try std.testing.expectEqual(state.phase0.beacon_state_ssz.genesis_time, 0);
 }
 
 test "test Validator" {
@@ -889,4 +1032,329 @@ test "test Validator" {
     };
 
     try std.testing.expectEqual(validator.effective_balance, 0);
+}
+
+test "test isActiveValidator" {
+    const validator = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 0,
+    };
+    const epoch: primitives.Epoch = 5;
+    const result = validator.isActiveValidator(epoch);
+    try std.testing.expectEqual(result, true);
+}
+
+test "test isEligibleForActivationQueue" {
+    preset.ActivePreset.set(preset.Presets.mainnet);
+    defer preset.ActivePreset.reset();
+    const validator = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = preset.ActivePreset.get().MIN_ACTIVATION_BALANCE,
+        .slashed = false,
+        .activation_eligibility_epoch = constants.FAR_FUTURE_EPOCH,
+        .activation_epoch = 0,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+    const result = validator.isEligibleForActivationQueue();
+    try std.testing.expectEqual(result, true);
+}
+
+test "test isEligibleForActivation" {
+    var finalized_checkpoint = Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+
+    const state_ssz = phase0.BeaconStateSSZ{
+        .genesis_time = 0,
+        .genesis_validators_root = undefined,
+        .slot = 0,
+        .fork = undefined,
+        .block_roots = undefined,
+        .state_roots = undefined,
+        .historical_roots = undefined,
+        .eth1_data = undefined,
+        .eth1_data_votes = undefined,
+        .eth1_deposit_index = 0,
+        .validators = undefined,
+        .balances = undefined,
+        .randao_mixes = undefined,
+        .slashings = undefined,
+        .previous_epoch_attestations = undefined,
+        .current_epoch_attestations = undefined,
+        .justification_bits = undefined,
+        .previous_justified_checkpoint = undefined,
+        .current_justified_checkpoint = undefined,
+        .finalized_checkpoint = &finalized_checkpoint,
+        .latest_block_header = undefined,
+    };
+
+    const state = BeaconState{
+        .phase0 = phase0.BeaconState{
+            .allocator = std.testing.allocator,
+            .beacon_state_ssz = state_ssz,
+        },
+    };
+
+    const validator = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = constants.FAR_FUTURE_EPOCH,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+
+    const result = validator.isEligibleForActivation(&state);
+    try std.testing.expectEqual(result, true);
+
+    const validator2 = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 10,
+        .activation_epoch = constants.FAR_FUTURE_EPOCH,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+
+    const result2 = validator2.isEligibleForActivation(&state);
+    try std.testing.expectEqual(result2, false);
+}
+
+test "test isSlashableValidator" {
+    preset.ActivePreset.set(preset.Presets.mainnet);
+    defer preset.ActivePreset.reset();
+    const validator = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const epoch: primitives.Epoch = 5;
+    const result = validator.isSlashableValidator(epoch);
+    try std.testing.expectEqual(result, true);
+
+    const validator2 = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 5,
+    };
+    const epoch2: primitives.Epoch = 5;
+    const result2 = validator2.isSlashableValidator(epoch2);
+    try std.testing.expectEqual(result2, false);
+}
+
+test "test_getActiveValidatorIndices_withTwoActiveValidators" {
+    var finalized_checkpoint = Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+
+    var validators = std.ArrayList(Validator).init(std.testing.allocator);
+    defer validators.deinit();
+
+    const validator1 = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+
+    const validator2 = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+    try validators.append(validator1);
+    try validators.append(validator2);
+
+    const state_ssz = altair.BeaconStateSSZ{
+        .genesis_time = 0,
+        .genesis_validators_root = .{0} ** 32,
+        .slot = 0,
+        .fork = undefined,
+        .block_roots = undefined,
+        .state_roots = undefined,
+        .historical_roots = undefined,
+        .eth1_data = undefined,
+        .eth1_data_votes = undefined,
+        .eth1_deposit_index = 0,
+        .validators = validators.items,
+        .balances = undefined,
+        .randao_mixes = undefined,
+        .slashings = undefined,
+        .previous_epoch_attestations = undefined,
+        .current_epoch_attestations = undefined,
+        .justification_bits = undefined,
+        .previous_justified_checkpoint = undefined,
+        .current_justified_checkpoint = undefined,
+        .finalized_checkpoint = &finalized_checkpoint,
+        .latest_block_header = undefined,
+        .inactivity_scores = undefined,
+        .current_sync_committee = undefined,
+        .next_sync_committee = undefined,
+    };
+
+    const state = BeaconState{
+        .altair = altair.BeaconState{
+            .allocator = std.testing.allocator,
+            .beacon_state_ssz = state_ssz,
+        },
+    };
+
+    const indices = try state.getActiveValidatorIndices(@as(primitives.Epoch, 5));
+    defer std.testing.allocator.free(indices);
+    try std.testing.expectEqual(indices.len, 2);
+}
+
+test "test getValidatorChurnLimit" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    configs.ActiveConfig.set(preset.Presets.minimal);
+    defer configs.ActiveConfig.reset();
+    var finalized_checkpoint = Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+
+    var validators = std.ArrayList(Validator).init(std.testing.allocator);
+    defer validators.deinit();
+
+    const validator1 = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+
+    const validator2 = Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+
+    // add 800 validators
+    for (0..400) |_| {
+        try validators.append(validator1);
+        try validators.append(validator2);
+    }
+
+    const state_ssz = altair.BeaconStateSSZ{
+        .genesis_time = 0,
+        .genesis_validators_root = .{0} ** 32,
+        .slot = 0,
+        .fork = undefined,
+        .block_roots = undefined,
+        .state_roots = undefined,
+        .historical_roots = undefined,
+        .eth1_data = undefined,
+        .eth1_data_votes = undefined,
+        .eth1_deposit_index = 0,
+        .validators = validators.items,
+        .balances = undefined,
+        .randao_mixes = undefined,
+        .slashings = undefined,
+        .previous_epoch_attestations = undefined,
+        .current_epoch_attestations = undefined,
+        .justification_bits = undefined,
+        .previous_justified_checkpoint = undefined,
+        .current_justified_checkpoint = undefined,
+        .finalized_checkpoint = &finalized_checkpoint,
+        .latest_block_header = undefined,
+        .inactivity_scores = undefined,
+        .current_sync_committee = undefined,
+        .next_sync_committee = undefined,
+    };
+
+    const state = BeaconState{
+        .altair = altair.BeaconState{
+            .allocator = std.testing.allocator,
+            .beacon_state_ssz = state_ssz,
+        },
+    };
+
+    const churn_limit = try state.getValidatorChurnLimit();
+    try std.testing.expectEqual(churn_limit, 25);
+
+    var validators1 = std.ArrayList(Validator).init(std.testing.allocator);
+    defer validators1.deinit();
+
+    try validators1.append(validator1);
+    try validators1.append(validator2);
+
+    const state_ssz1 = altair.BeaconStateSSZ{
+        .genesis_time = 0,
+        .genesis_validators_root = .{0} ** 32,
+        .slot = 0,
+        .fork = undefined,
+        .block_roots = undefined,
+        .state_roots = undefined,
+        .historical_roots = undefined,
+        .eth1_data = undefined,
+        .eth1_data_votes = undefined,
+        .eth1_deposit_index = 0,
+        .validators = validators1.items,
+        .balances = undefined,
+        .randao_mixes = undefined,
+        .slashings = undefined,
+        .previous_epoch_attestations = undefined,
+        .current_epoch_attestations = undefined,
+        .justification_bits = undefined,
+        .previous_justified_checkpoint = undefined,
+        .current_justified_checkpoint = undefined,
+        .finalized_checkpoint = &finalized_checkpoint,
+        .latest_block_header = undefined,
+        .inactivity_scores = undefined,
+        .current_sync_committee = undefined,
+        .next_sync_committee = undefined,
+    };
+
+    const state1 = BeaconState{
+        .altair = altair.BeaconState{
+            .allocator = std.testing.allocator,
+            .beacon_state_ssz = state_ssz1,
+        },
+    };
+
+    const churn_limit1 = try state1.getValidatorChurnLimit();
+    try std.testing.expectEqual(churn_limit1, 2);
 }

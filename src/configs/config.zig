@@ -27,6 +27,16 @@ pub const ActiveConfig = struct {
         }
         return config;
     }
+
+    pub fn reset() void {
+        if (!is_initialized.load(.acquire)) return;
+
+        is_initialized.store(false, .release);
+
+        mutex.lock();
+        defer mutex.unlock();
+        config = undefined;
+    }
 };
 
 pub const Config = struct {
@@ -269,6 +279,7 @@ test "minimal config has correct MIN_PER_EPOCH_CHURN_LIMIT_ELECTRA" {
 
 test "test ActiveConfig" {
     ActiveConfig.set(preset.Presets.mainnet);
+    defer ActiveConfig.reset();
     const active_config = ActiveConfig.get();
     try std.testing.expectEqual(active_config.PRESET_BASE, "mainnet");
 }

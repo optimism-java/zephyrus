@@ -10,7 +10,6 @@ pub const bellatrix = @import("consensus/bellatrix/types.zig");
 pub const capella = @import("consensus/capella/types.zig");
 pub const deneb = @import("consensus/deneb/types.zig");
 pub const electra = @import("consensus/electra/types.zig");
-pub const validator_helpers = @import("consensus/helpers/validator.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

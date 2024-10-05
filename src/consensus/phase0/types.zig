@@ -21,7 +21,7 @@ pub const BeaconBlockBody = struct {
     voluntary_exits: []consensus.SignedVoluntaryExit,
 };
 
-pub const BeaconState = struct {
+pub const BeaconStateSSZ = struct {
     genesis_time: u64,
     genesis_validators_root: primitives.Root,
     slot: primitives.Slot,
@@ -45,8 +45,46 @@ pub const BeaconState = struct {
     finalized_checkpoint: ?*consensus.Checkpoint,
 };
 
+pub const BeaconState = struct {
+    beacon_state_ssz: BeaconStateSSZ,
+    allocator: std.mem.Allocator,
+
+    pub fn init(allocator: std.mem.Allocator, beacon_state_ssz: BeaconStateSSZ) !BeaconState {
+        return BeaconState{
+            .beacon_state_ssz = beacon_state_ssz,
+            .allocator = allocator,
+        };
+    }
+
+    pub fn deinit(self: *BeaconState) void {
+        self.allocator.free(self.beacon_state_ssz.validators);
+        self.allocator.free(self.beacon_state_ssz.balances);
+        self.allocator.free(self.beacon_state_ssz.randao_mixes);
+        self.allocator.free(self.beacon_state_ssz.slashings);
+        self.allocator.free(self.beacon_state_ssz.previous_epoch_attestations);
+        self.allocator.free(self.beacon_state_ssz.current_epoch_attestations);
+        self.allocator.free(self.beacon_state_ssz.justification_bits);
+        self.allocator.destroy(self.beacon_state_ssz.previous_justified_checkpoint);
+        self.allocator.destroy(self.beacon_state_ssz.current_justified_checkpoint);
+        if (self.beacon_state_ssz.finalized_checkpoint) |checkpoint| {
+            self.allocator.destroy(checkpoint);
+        }
+        self.allocator.destroy(self.beacon_state_ssz.fork);
+        if (self.beacon_state_ssz.latest_block_header) |latest_block_header| {
+            self.allocator.destroy(latest_block_header);
+        }
+        self.allocator.free(self.beacon_state_ssz.block_roots);
+        self.allocator.free(self.beacon_state_ssz.state_roots);
+        self.allocator.free(self.beacon_state_ssz.historical_roots);
+        if (self.beacon_state_ssz.eth1_data) |eth1_data| {
+            self.allocator.destroy(eth1_data);
+        }
+        self.allocator.free(self.beacon_state_ssz.eth1_data_votes);
+    }
+};
+
 test "test BeaconState" {
-    const state = BeaconState{
+    const state = BeaconStateSSZ{
         .genesis_time = 0,
         .genesis_validators_root = undefined,
         .slot = 0,
