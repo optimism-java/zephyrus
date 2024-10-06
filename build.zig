@@ -24,6 +24,17 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    // // Add ssz.zig as a dependency to the library
+    // const ssz_dep = b.dependency(
+    //     "ssz.zig",
+    //     .{
+    //         .target = target,
+    //         .optimize = optimize,
+    //     },
+    // );
+    // lib.addLibraryPath(ssz_dep.path("src"));
+    // lib.addIncludePath(ssz_dep.path("src"));
+
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).

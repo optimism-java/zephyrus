@@ -9,6 +9,7 @@ const capella = @import("../consensus/capella/types.zig");
 const deneb = @import("../consensus/deneb/types.zig");
 const electra = @import("../consensus/electra/types.zig");
 const configs = @import("../configs/config.zig");
+// const ssz = @import("../ssz/ssz.zig");
 
 pub const NonExistType = struct {};
 
@@ -113,8 +114,8 @@ pub const AttestationData = struct {
     // LMD GHOST vote
     beacon_block_root: primitives.Root,
     // FFG vote
-    source: ?*Checkpoint,
-    target: ?*Checkpoint,
+    source: Checkpoint,
+    target: Checkpoint,
 };
 
 pub const IndexedAttestation = struct {
@@ -502,12 +503,16 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    /// slot returns the slot of the given state.
+    /// @return The slot of the state.
     pub fn slot(self: *const BeaconState) primitives.Slot {
         return switch (self.*) {
             inline else => |state| state.beacon_state_ssz.slot,
         };
     }
 
+    /// validators returns the validators of the given state.
+    /// @return The validators of the state.
     pub fn validators(self: *const BeaconState) []const Validator {
         return switch (self.*) {
             inline else => |state| state.beacon_state_ssz.validators,
@@ -525,10 +530,10 @@ pub const BeaconState = union(primitives.ForkType) {
     /// @return The indices of active validators for the given epoch.
     /// Spec pseudocode definition:
     /// def get_active_validator_indices(state: BeaconState, epoch: Epoch) -> Sequence[ValidatorIndex]:
-    /// """
-    /// Return the sequence of active validator indices at ``epoch``.
-    /// """
-    /// return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
+    ///     """
+    ///     Return the sequence of active validator indices at ``epoch``.
+    ///     """
+    ///     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
     pub fn getActiveValidatorIndices(self: *const BeaconState, epoch: primitives.Epoch) ![]const primitives.ValidatorIndex {
         var active_validators = std.ArrayList(primitives.ValidatorIndex).init(self.allocator());
         errdefer active_validators.deinit();
@@ -586,6 +591,102 @@ pub const BeaconState = union(primitives.ForkType) {
 
 pub fn getCheckpointEpoch(checkpoint: ?*Checkpoint) primitives.Epoch {
     return if (checkpoint) |c| c.epoch else @as(primitives.Epoch, 0);
+}
+
+/// isSlashableAttestationData checks if two attestations are slashable according to Casper FFG rules.
+/// @param data_1 The first attestation data.
+/// @param data_2 The second attestation data.
+/// @return True if the attestations are slashable, false otherwise.
+/// Spec pseudocode definition:
+/// def is_slashable_attestation_data(data_1: AttestationData, data_2: AttestationData) -> bool:
+///    """
+///    Check if ``data_1`` and ``data_2`` are slashable according to Casper FFG rules.
+///    """
+///    return (
+///          # Double vote
+///        (data_1 != data_2 and data_1.target.epoch == data_2.target.epoch) or
+///         # Surround vote
+///        (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
+///     )
+pub fn isSlashableAttestationData(data1: AttestationData, data2: AttestationData) bool {
+    // Check if `data_1` and `data_2` are slashable according to Casper FFG rules.
+    return (
+    // Double vote
+        (!std.meta.eql(data1, data2) and data1.target.epoch == data2.target.epoch) or
+        // Surround vote
+        (data1.source.epoch < data2.source.epoch and data2.target.epoch < data1.target.epoch));
+}
+
+// pub fn compute_fork_data_root(current_version: primitives.Version, genesis_validators_root: primitives.Root) primitives.Root {
+//     const fork_data = ForkData{
+//         .current_version = current_version,
+//         .genesis_validators_root = genesis_validators_root,
+//     };
+//
+//    return ssz.serialize_root(&fork_data);
+// }
+
+test "test isSlashableAttestationData" {
+    const data1 = AttestationData{
+        .slot = 0,
+        .index = 0,
+        .beacon_block_root = undefined,
+        .source = Checkpoint{
+            .epoch = 0,
+            .root = undefined,
+        },
+        .target = Checkpoint{
+            .epoch = 0,
+            .root = undefined,
+        },
+    };
+
+    const data2 = AttestationData{
+        .slot = 0,
+        .index = 0,
+        .beacon_block_root = undefined,
+        .source = Checkpoint{
+            .epoch = 0,
+            .root = undefined,
+        },
+        .target = Checkpoint{
+            .epoch = 0,
+            .root = undefined,
+        },
+    };
+
+    try std.testing.expectEqual(isSlashableAttestationData(data1, data2), false);
+
+    const data3 = AttestationData{
+        .slot = 0,
+        .index = 0,
+        .beacon_block_root = undefined,
+        .source = Checkpoint{
+            .epoch = 0,
+            .root = undefined,
+        },
+        .target = Checkpoint{
+            .epoch = 1,
+            .root = undefined,
+        },
+    };
+
+    const data4 = AttestationData{
+        .slot = 0,
+        .index = 0,
+        .beacon_block_root = undefined,
+        .source = Checkpoint{
+            .epoch = 1,
+            .root = undefined,
+        },
+        .target = Checkpoint{
+            .epoch = 1,
+            .root = undefined,
+        },
+    };
+
+    try std.testing.expectEqual(isSlashableAttestationData(data3, data4), true);
+    try std.testing.expectEqual(isSlashableAttestationData(data1, data4), false);
 }
 
 test "test Attestation" {
