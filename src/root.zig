@@ -10,6 +10,10 @@ pub const bellatrix = @import("consensus/bellatrix/types.zig");
 pub const capella = @import("consensus/capella/types.zig");
 pub const deneb = @import("consensus/deneb/types.zig");
 pub const electra = @import("consensus/electra/types.zig");
+pub const epoch_helper = @import("consensus/helpers/epoch.zig");
+pub const attestation_helper = @import("consensus/helpers/attestation.zig");
+pub const weak_subjectivity_helper = @import("consensus/helpers/weak_subjectivity.zig");
+pub const validator_helper = @import("consensus/helpers/validator.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

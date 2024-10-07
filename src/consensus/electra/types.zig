@@ -155,11 +155,11 @@ test "test ExecutionPayloadHeader" {
     try std.testing.expectEqual(header.block_number, 21);
 }
 
-pub const BeaconStateSSZ = @Type(
+pub const BeaconState = @Type(
     .{
         .@"struct" = .{
             .layout = .auto,
-            .fields = @typeInfo(capella.BeaconStateSSZ).@"struct".fields ++ &[_]std.builtin.Type.StructField{
+            .fields = @typeInfo(capella.BeaconState).@"struct".fields ++ &[_]std.builtin.Type.StructField{
                 .{
                     .name = "deposit_requests_start_index", // # [New in Electra:EIP6110]
                     .type = u64,
@@ -230,57 +230,49 @@ pub const BeaconStateSSZ = @Type(
     },
 );
 
-pub const BeaconState = struct {
-    beacon_state_ssz: BeaconStateSSZ,
-    allocator: std.mem.Allocator,
+test "test BeaconState" {
+    const state = BeaconState{
+        .genesis_time = 0,
+        .genesis_validators_root = undefined,
+        .slot = 0,
+        .fork = undefined,
+        .latest_block_header = undefined,
+        .block_roots = undefined,
+        .state_roots = undefined,
+        .historical_roots = undefined,
+        .eth1_data = undefined,
+        .eth1_data_votes = undefined,
+        .eth1_deposit_index = 0,
+        .validators = undefined,
+        .balances = undefined,
+        .randao_mixes = undefined,
+        .slashings = undefined,
+        .previous_epoch_attestations = undefined,
+        .current_epoch_attestations = undefined,
+        .justification_bits = undefined,
+        .previous_justified_checkpoint = undefined,
+        .current_justified_checkpoint = undefined,
+        .finalized_checkpoint = undefined,
+        .inactivity_scores = undefined,
+        .current_sync_committee = undefined,
+        .next_sync_committee = undefined,
+        .latest_execution_payload_header = undefined,
+        .next_withdrawal_index = 0,
+        .next_withdrawal_validator_index = 0,
+        .historical_summaries = undefined,
+        .deposit_requests_start_index = 0,
+        .deposit_balance_to_consume = 0,
+        .exit_balance_to_consume = 0,
+        .earliest_exit_epoch = 0,
+        .consolidation_balance_to_consume = 0,
+        .earliest_consolidation_epoch = 0,
+        .pending_balance_deposits = undefined,
+        .pending_partial_withdrawals = undefined,
+        .pending_consolidations = undefined,
+    };
 
-    pub fn init(allocator: std.mem.Allocator, beacon_state_ssz: BeaconStateSSZ) !BeaconState {
-        return BeaconState{
-            .beacon_state_ssz = beacon_state_ssz,
-            .allocator = allocator,
-        };
-    }
-
-    pub fn deinit(self: *BeaconState) void {
-        self.allocator.free(self.beacon_state_ssz.validators);
-        self.allocator.free(self.beacon_state_ssz.balances);
-        self.allocator.free(self.beacon_state_ssz.randao_mixes);
-        self.allocator.free(self.beacon_state_ssz.slashings);
-        self.allocator.free(self.beacon_state_ssz.previous_epoch_attestations);
-        self.allocator.free(self.beacon_state_ssz.current_epoch_attestations);
-        self.allocator.free(self.beacon_state_ssz.justification_bits);
-        self.allocator.destroy(self.beacon_state_ssz.previous_justified_checkpoint);
-        self.allocator.destroy(self.beacon_state_ssz.current_justified_checkpoint);
-        if (self.beacon_state_ssz.finalized_checkpoint) |checkpoint| {
-            self.allocator.destroy(checkpoint);
-        }
-        self.allocator.destroy(self.beacon_state_ssz.fork);
-        if (self.beacon_state_ssz.latest_block_header) |latest_block_header| {
-            self.allocator.destroy(latest_block_header);
-        }
-        self.allocator.free(self.beacon_state_ssz.block_roots);
-        self.allocator.free(self.beacon_state_ssz.state_roots);
-        self.allocator.free(self.beacon_state_ssz.historical_roots);
-        if (self.beacon_state_ssz.eth1_data) |eth1_data| {
-            self.allocator.destroy(eth1_data);
-        }
-        self.allocator.free(self.beacon_state_ssz.eth1_data_votes);
-        self.allocator.free(self.beacon_state_ssz.inactivity_scores);
-        if (self.beacon_state_ssz.current_sync_committee) |current_sync_committee| {
-            self.allocator.destroy(current_sync_committee);
-        }
-        if (self.beacon_state_ssz.next_sync_committee) |next_sync_committee| {
-            self.allocator.destroy(next_sync_committee);
-        }
-        if (self.beacon_state_ssz.latest_execution_payload_header) |latest_execution_payload_header| {
-            self.allocator.destroy(latest_execution_payload_header);
-        }
-        self.allocator.free(self.beacon_state_ssz.historical_summaries);
-        self.allocator.free(self.beacon_state_ssz.pending_balance_deposits);
-        self.allocator.free(self.beacon_state_ssz.pending_partial_withdrawals);
-        self.allocator.free(self.beacon_state_ssz.pending_consolidations);
-    }
-};
+    try std.testing.expectEqual(state.genesis_time, 0);
+}
 
 test "test Attestation" {
     const attestation = Attestation{
