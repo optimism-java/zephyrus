@@ -22,12 +22,10 @@
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
-    .dependencies = .{
-        .@"ssz.zig" = .{
-            .url = "https://github.com/gballet/ssz.zig/archive/808c88aa6bd0f3d2e736774e4439afa24ab5377c.tar.gz",
-            .hash = "1220c73fadb1988c41aa54be104ce680812f833a6f6d53a5065f6e6db7ca73989d55",
-        },
-    },
+    .dependencies = .{ .zabi = .{
+        .url = "https://github.com/Raiden1411/zabi/archive/79c77aa4a39d41ed50033fd922f4d37c0f0638bb.tar.gz",
+        .hash = "122095aaf2d09e3286bf8b00b773b65c1632639de6c5005de881754df7c04efc7e98",
+    } },
     .paths = .{
         "build.zig",
         "build.zig.zon",

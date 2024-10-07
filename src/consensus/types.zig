@@ -458,15 +458,6 @@ pub const BeaconState = union(primitives.ForkType) {
     }
 };
 
-// pub fn compute_fork_data_root(current_version: primitives.Version, genesis_validators_root: primitives.Root) primitives.Root {
-//     const fork_data = ForkData{
-//         .current_version = current_version,
-//         .genesis_validators_root = genesis_validators_root,
-//     };
-//
-//    return ssz.serialize_root(&fork_data);
-// }
-
 test "test Attestation" {
     const attestation = Attestation{
         .phase0 = phase0.Attestation{
