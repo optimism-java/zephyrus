@@ -15,6 +15,8 @@ pub const attestation_helper = @import("consensus/helpers/attestation.zig");
 pub const weak_subjectivity_helper = @import("consensus/helpers/weak_subjectivity.zig");
 pub const validator_helper = @import("consensus/helpers/validator.zig");
 pub const domain_helper = @import("consensus/helpers/domain.zig");
+pub const signing_root_helper = @import("consensus/helpers/signing_root.zig");
+pub const block_root_helper = @import("consensus/helpers/block_root.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

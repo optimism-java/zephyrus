@@ -435,6 +435,14 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    /// block_roots returns the block roots of the given state.
+    /// @return The block roots of the state.
+    pub fn blockRoots(self: *const BeaconState) []const primitives.Root {
+        return switch (self.*) {
+            inline else => |state| state.block_roots,
+        };
+    }
+
     /// slot returns the slot of the given state.
     /// @return The slot of the state.
     pub fn slot(self: *const BeaconState) primitives.Slot {
