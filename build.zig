@@ -25,14 +25,14 @@ pub fn build(b: *std.Build) void {
     });
 
     // Add ssz.zig as a dependency to the library
-    const ssz_dep = b.dependency(
-        "zabi",
-        .{
-            .target = target,
-            .optimize = optimize,
-        },
-    );
-    lib.root_module.addImport("zabi", ssz_dep.module("zabi"));
+    // const ssz_dep = b.dependency(
+    //     "zabi",
+    //     .{
+    //         .target = target,
+    //         .optimize = optimize,
+    //     },
+    // );
+    // lib.root_module.addImport("zabi", ssz_dep.module("zabi"));
 
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
@@ -46,7 +46,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe.root_module.addImport("zabi", ssz_dep.module("zabi"));
+    // exe.root_module.addImport("zabi", ssz_dep.module("zabi"));
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
@@ -83,7 +83,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    lib_unit_tests.root_module.addImport("zabi", ssz_dep.module("zabi"));
+    // lib_unit_tests.root_module.addImport("zabi", ssz_dep.module("zabi"));
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 

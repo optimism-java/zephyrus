@@ -78,8 +78,6 @@ pub fn computeActivationExitEpoch(epoch: primitives.Epoch) primitives.Epoch {
     return @as(primitives.Epoch, epoch + 1 + preset.ActivePreset.get().MAX_SEED_LOOKAHEAD);
 }
 
-
-
 test "test compute_epoch_at_slot" {
     preset.ActivePreset.set(preset.Presets.mainnet);
     defer preset.ActivePreset.reset();
