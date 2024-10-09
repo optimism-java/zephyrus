@@ -435,7 +435,15 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
-    /// block_roots returns the block roots of the given state.
+    /// randaoMixes returns the randao mixes of the given state.
+    /// @return The randao mixes of the state.
+    pub fn randaoMixes(self: *const BeaconState) []const primitives.Root {
+        return switch (self.*) {
+            inline else => |state| state.randao_mixes,
+        };
+    }
+
+    /// blockRoots returns the block roots of the given state.
     /// @return The block roots of the state.
     pub fn blockRoots(self: *const BeaconState) []const primitives.Root {
         return switch (self.*) {

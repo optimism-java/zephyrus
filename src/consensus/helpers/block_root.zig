@@ -24,7 +24,7 @@ pub fn getBlockRootAtSlot(state: *const consensus.BeaconState, slot: primitives.
     if (slot >= state.slot() or state.slot() > slot + preset.ActivePreset.get().SLOTS_PER_HISTORICAL_ROOT) {
         return error.InvalidSlot;
     }
-    return state.blockRoots()[slot % preset.ActivePreset.get().SLOTS_PER_HISTORICAL_ROOT];
+    return state.blockRoots()[@mod(slot, preset.ActivePreset.get().SLOTS_PER_HISTORICAL_ROOT)];
 }
 
 /// getBlockRoot returns the block root at the start of a recent `epoch`.
@@ -179,10 +179,7 @@ test "test get_block_root" {
     try validators.append(validator1);
     try validators.append(validator2);
 
-    var block_roots = try std.ArrayList(primitives.Root).initCapacity(
-        std.testing.allocator,
-        preset.ActivePreset.get().SLOTS_PER_HISTORICAL_ROOT
-    );
+    var block_roots = try std.ArrayList(primitives.Root).initCapacity(std.testing.allocator, preset.ActivePreset.get().SLOTS_PER_HISTORICAL_ROOT);
     defer block_roots.deinit();
     for (0..preset.ActivePreset.get().SLOTS_PER_HISTORICAL_ROOT) |slot_index| {
         try block_roots.append(.{@as(u8, @intCast(slot_index))} ** 32);

@@ -87,6 +87,10 @@ pub const ForkType = enum {
     electra,
 };
 
+pub const DomainTypeSize = @sizeOf(DomainType);
+pub const EpochSize = @sizeOf(Epoch);
+pub const Bytes32Size = @sizeOf(Bytes32);
+
 /// computeActivationExitEpoch computes the activation exit epoch for a given epoch.
 /// @param epoch The epoch to compute the activation exit epoch for.
 /// @return The activation exit epoch.
