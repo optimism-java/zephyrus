@@ -9,7 +9,6 @@ const capella = @import("../consensus/capella/types.zig");
 const deneb = @import("../consensus/deneb/types.zig");
 const electra = @import("../consensus/electra/types.zig");
 const configs = @import("../configs/config.zig");
-// const ssz = @import("../ssz/ssz.zig");
 
 pub const NonExistType = struct {};
 
