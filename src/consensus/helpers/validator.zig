@@ -7,6 +7,7 @@ const preset = @import("../../presets/preset.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");
 const altair = @import("../../consensus/altair/types.zig");
 const epoch_helper = @import("../../consensus/helpers/epoch.zig");
+const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
 
 /// Check if a validator is active at a given epoch.
 /// A validator is active if the current epoch is greater than or equal to the validator's activation epoch and less than the validator's exit epoch.
@@ -90,6 +91,7 @@ pub fn isSlashableValidator(validator: *const consensus.Validator, epoch: primit
 ///     Return the sequence of active validator indices at ``epoch``.
 ///     """
 ///     return [ValidatorIndex(i) for i, v in enumerate(state.validators) if is_active_validator(v, epoch)]
+/// Note: Caller is responsible for freeing the returned slice.
 pub fn getActiveValidatorIndices(state: *const consensus.BeaconState, epoch: primitives.Epoch, allocator: std.mem.Allocator) ![]const primitives.ValidatorIndex {
     var active_validators = std.ArrayList(primitives.ValidatorIndex).init(allocator);
     errdefer active_validators.deinit();
@@ -119,6 +121,57 @@ pub fn getValidatorChurnLimit(state: *const consensus.BeaconState, allocator: st
     defer allocator.free(active_validator_indices);
     const conf = configs.ActiveConfig.get();
     return @max(conf.MIN_PER_EPOCH_CHURN_LIMIT, @divFloor(@as(u64, active_validator_indices.len), conf.CHURN_LIMIT_QUOTIENT));
+}
+
+/// computeProposerIndex returns the index of the proposer for the current epoch.
+/// @param state - The beacon state.
+/// @param indices - The validator indices.
+/// @param seed - The seed.
+/// @returns The index of the proposer for the current epoch.
+/// Spec pseudocode definition:
+/// def compute_proposer_index(state: BeaconState, indices: Sequence[ValidatorIndex], seed: Bytes32) -> ValidatorIndex:
+///     """
+///     Return from ``indices`` a random index sampled by effective balance.
+///    """
+///    assert len(indices) > 0
+///    MAX_RANDOM_BYTE = 2**8 - 1
+///    i = uint64(0)
+///    total = uint64(len(indices))
+///    while True:
+///       candidate_index = indices[compute_shuffled_index(i % total, total, seed)]
+///       random_byte = hash(seed + uint_to_bytes(uint64(i // 32)))[i % 32]
+///       effective_balance = state.validators[candidate_index].effective_balance
+///       # [Modified in Electra:EIP7251]
+///      if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE_ELECTRA * random_byte:
+///          return candidate_index
+///      i += 1
+pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []const primitives.ValidatorIndex, seed: primitives.Bytes32) !primitives.ValidatorIndex {
+    if (indices.len == 0) return error.EmptyValidatorIndices;
+    const MAX_RANDOM_BYTE: u8 = std.math.maxInt(u8);
+    var i: u64 = 0;
+    const total: u64 = indices.len;
+
+    while (true) {
+        const shuffled_index = try shuffle_helper.computeShuffledIndex(@mod(i, total), total, seed);
+        const candidate_index = indices[@intCast(shuffled_index)];
+        var hash_result: [32]u8 = undefined;
+        var seed_plus: [40]u8 = undefined;
+        @memcpy(seed_plus[0..32], &seed);
+        std.mem.writeInt(u64, seed_plus[32..40], @divFloor(i, 32), .little);
+        std.debug.print("seed_plus: {any}, i: {}\n", .{ seed_plus, i });
+        std.crypto.hash.sha2.Sha256.hash(&seed_plus, &hash_result, .{});
+        const randomByte = hash_result[@mod(i, 32)];
+        const effectiveBalance = state.validators()[candidate_index].effective_balance;
+
+        const max_effective_balance = switch (state.*) {
+            .electra => preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE_ELECTRA,
+            else => preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE,
+        };
+        if (effectiveBalance * MAX_RANDOM_BYTE >= max_effective_balance * randomByte) {
+            return candidate_index;
+        }
+        i += 1;
+    }
 }
 
 test "test getValidatorChurnLimit" {
@@ -424,4 +477,76 @@ test "test_getActiveValidatorIndices_withTwoActiveValidators" {
     const indices = try getActiveValidatorIndices(&state, @as(primitives.Epoch, 5), std.testing.allocator);
     defer std.testing.allocator.free(indices);
     try std.testing.expectEqual(indices.len, 2);
+}
+
+test "test computeProposerIndex" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    var finalized_checkpoint = consensus.Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 12312312312,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+    try validators.append(validator1);
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 232323232332,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+    try validators.append(validator2);
+
+    var randao_mixes = try std.ArrayList(primitives.Bytes32).initCapacity(std.testing.allocator, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
+    defer randao_mixes.deinit();
+    for (0..preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR) |slot_index| {
+        try randao_mixes.append(.{@as(u8, @intCast(slot_index))} ** 32);
+    }
+
+    const state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = randao_mixes.items,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = &finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    const validator_index = [_]primitives.ValidatorIndex{ 0, 1 };
+    const proposer_index = try computeProposerIndex(&state, &validator_index, .{1} ** 32);
+    try std.testing.expectEqual(0, proposer_index);
 }
