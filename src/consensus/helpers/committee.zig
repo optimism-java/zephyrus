@@ -10,6 +10,7 @@ const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const validator_helper = @import("../../consensus/helpers/validator.zig");
 const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
 const seed_helper = @import("../../consensus/helpers/seed.zig");
+const sha256 = std.crypto.hash.sha2.Sha256;
 
 /// Calculates the committee count per slot for a given epoch
 /// Returns: The number of committees per slot
@@ -100,6 +101,30 @@ pub fn getBeaconCommittee(state: *const consensus.BeaconState, slot: primitives.
     const i = @mod(slot, preset.ActivePreset.get().SLOTS_PER_EPOCH) * committeesPerSlot + index;
     const count = committeesPerSlot * preset.ActivePreset.get().SLOTS_PER_EPOCH;
     return computeCommittee(indices, seed, i, count, allocator);
+}
+
+/// getBeaconProposerIndex returns the beacon proposer index for the current epoch.
+/// @param state - The beacon state.
+/// @param allocator - The allocator.
+/// @returns The beacon proposer index for the current epoch.
+/// Spec pseudocode definition:
+/// def get_beacon_proposer_index(state: BeaconState) -> ValidatorIndex:
+///     """
+///     Return the beacon proposer index at the current slot.
+///     """
+///     epoch = get_current_epoch(state)
+///     seed = hash(get_seed(state, epoch, DOMAIN_BEACON_PROPOSER) + uint_to_bytes(state.slot))
+///     indices = get_active_validator_indices(state, epoch)
+///     return compute_proposer_index(state, indices, seed)
+pub fn getBeaconProposerIndex(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.ValidatorIndex {
+    const epoch = epoch_helper.getCurrentEpoch(state);
+    const seed_origin = seed_helper.getSeed(state, epoch, constants.DOMAIN_BEACON_PROPOSER) ++ std.mem.asBytes(&state.slot());
+    std.debug.print("seed_origin: {any}\n", .{seed_origin});
+    var seed: primitives.Bytes32 = undefined;
+    sha256.hash(seed_origin, &seed, .{});
+    const indices = try validator_helper.getActiveValidatorIndices(state, epoch, allocator);
+    defer allocator.free(indices);
+    return validator_helper.computeProposerIndex(state, indices, seed);
 }
 
 test "test getCommitteeCountPerSlot" {
@@ -274,4 +299,86 @@ test "test getBeaconCommittee" {
     try std.testing.expectEqual(15625, committee.len);
     try std.testing.expectEqual(341591, committee[0]);
     try std.testing.expectEqual(554849, committee[15624]);
+}
+
+test "test getBeaconProposerIndex" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    var finalized_checkpoint = consensus.Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+    for (0..500000) |_| {
+        try validators.append(validator1);
+        try validators.append(validator2);
+    }
+    var block_roots = std.ArrayList(primitives.Root).init(std.testing.allocator);
+    defer block_roots.deinit();
+    const block_root1 = .{0} ** 32;
+    const block_root2 = .{1} ** 32;
+    const block_root3 = .{2} ** 32;
+    try block_roots.append(block_root1);
+    try block_roots.append(block_root2);
+    try block_roots.append(block_root3);
+
+    var randao_mixes = try std.ArrayList(primitives.Bytes32).initCapacity(std.testing.allocator, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
+    defer randao_mixes.deinit();
+    for (0..preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR) |slot_index| {
+        try randao_mixes.append(.{@as(u8, @intCast(slot_index))} ** 32);
+    }
+
+    const state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = block_roots.items,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = randao_mixes.items,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = &finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    const proposer_index = try getBeaconProposerIndex(&state, std.testing.allocator);
+    try std.testing.expectEqual(674517, proposer_index);
 }

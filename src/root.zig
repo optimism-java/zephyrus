@@ -20,6 +20,7 @@ pub const block_root_helper = @import("consensus/helpers/block_root.zig");
 pub const seed_helper = @import("consensus/helpers/seed.zig");
 pub const committee_helper = @import("consensus/helpers/committee.zig");
 pub const shuffle_helper = @import("consensus/helpers/shuffle.zig");
+pub const balance_helper = @import("consensus/helpers/balance.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());
