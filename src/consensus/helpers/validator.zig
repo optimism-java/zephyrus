@@ -158,7 +158,7 @@ pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []cons
         var seed_plus: [40]u8 = undefined;
         @memcpy(seed_plus[0..32], &seed);
         std.mem.writeInt(u64, seed_plus[32..40], @divFloor(i, 32), .little);
-        std.debug.print("seed_plus: {any}, i: {}\n", .{ seed_plus, i });
+        std.log.debug("seed_plus: {any}, i: {}\n", .{ seed_plus, i });
         std.crypto.hash.sha2.Sha256.hash(&seed_plus, &hash_result, .{});
         const randomByte = hash_result[@mod(i, 32)];
         const effectiveBalance = state.validators()[candidate_index].effective_balance;

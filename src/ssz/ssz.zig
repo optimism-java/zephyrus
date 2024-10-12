@@ -1001,7 +1001,7 @@ pub fn hashTreeRoot(value: anytype, out: *[32]u8, allocator: Allocator) !void {
             var chunks = ArrayList(chunk).init(allocator);
             defer chunks.deinit();
             var tmp: chunk = undefined;
-            inline for (type_info.Struct.fields) |f| {
+            inline for (type_info.@"struct".fields) |f| {
                 try hashTreeRoot(@field(value, f.name), &tmp, allocator);
                 try chunks.append(tmp);
             }

@@ -25,8 +25,8 @@ pub fn getTotalBalance(state: *const consensus.BeaconState, indices: std.AutoHas
     var total: primitives.Gwei = 0;
     var iterator = indices.keyIterator();
     while (iterator.next()) |index| {
-        std.debug.print("index: {}\n", .{index});
-        std.debug.print("state.validators()[index.*].effective_balance: {}\n", .{state.validators()[index.*].effective_balance});
+        std.log.debug("index: {}\n", .{index});
+        std.log.debug("state.validators()[index.*].effective_balance: {}\n", .{state.validators()[index.*].effective_balance});
         total += state.validators()[index.*].effective_balance;
     }
     return @max(preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT, total);
