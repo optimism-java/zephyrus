@@ -25,4 +25,5 @@ pub const ssz = @import("./ssz/ssz.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());
+    _ = @import("./spec_tests/root.zig");
 }

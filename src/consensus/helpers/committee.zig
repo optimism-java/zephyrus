@@ -28,7 +28,7 @@ pub fn getCommitteeCountPerSlot(state: *const consensus.BeaconState, epoch: prim
     defer allocator.free(active_validator_indices);
 
     const active_validator_count = active_validator_indices.len;
-    std.debug.print("active_validator_count: {}\n", .{active_validator_count});
+    std.log.debug("active_validator_count: {}\n", .{active_validator_count});
     const slots_per_epoch = preset.ActivePreset.get().SLOTS_PER_EPOCH;
     const target_committee_size = preset.ActivePreset.get().TARGET_COMMITTEE_SIZE;
 
@@ -119,7 +119,7 @@ pub fn getBeaconCommittee(state: *const consensus.BeaconState, slot: primitives.
 pub fn getBeaconProposerIndex(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.ValidatorIndex {
     const epoch = epoch_helper.getCurrentEpoch(state);
     const seed_origin = seed_helper.getSeed(state, epoch, constants.DOMAIN_BEACON_PROPOSER) ++ std.mem.asBytes(&state.slot());
-    std.debug.print("seed_origin: {any}\n", .{seed_origin});
+    std.log.debug("seed_origin: {any}\n", .{seed_origin});
     var seed: primitives.Bytes32 = undefined;
     sha256.hash(seed_origin, &seed, .{});
     const indices = try validator_helper.getActiveValidatorIndices(state, epoch, allocator);

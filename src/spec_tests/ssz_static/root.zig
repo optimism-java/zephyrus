@@ -1,7 +1,7 @@
 const std = @import("std");
 const testing = std.testing;
-const ssz = @import("./ssz/ssz.zig");
-const types = @import("./consensus/types.zig");
+const ssz = @import("../../ssz/ssz.zig");
+const types = @import("../../consensus/types.zig");
 
 test "hash tree root" {
     const fork = types.Fork{

@@ -21,7 +21,7 @@ pub fn computeForkDataRoot(current_version: primitives.Version, genesis_validato
         .genesis_validators_root = genesis_validators_root,
     };
 
-    std.debug.print("ForkData: {}\n", .{fork_data});
+    std.log.debug("ForkData: {}\n", .{fork_data});
     // todo: implement hash_tree_root
     return @as(primitives.Root, .{0} ** 32);
 }

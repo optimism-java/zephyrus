@@ -15,14 +15,14 @@ const configs = @import("../../configs/config.zig");
 ///   ))
 pub fn computeSigningRoot(comptime sszObject: type, domain: primitives.Domain) primitives.Root {
     // const objectRoot = hashTreeRoot(sszObject);
-    std.debug.print("sszObject: {}\n", .{sszObject});
+    std.log.debug("sszObject: {}\n", .{sszObject});
     const objectRoot = @as(primitives.Root, .{0} ** 32);
     const signingData = consensus.SigningData{
         .object_root = objectRoot,
         .domain = domain,
     };
 
-    std.debug.print("signingData: {}\n", .{signingData});
+    std.log.debug("signingData: {}\n", .{signingData});
     // return hashTreeRoot(signingData);
     return @as(primitives.Root, .{0} ** 32);
 }
