@@ -25,7 +25,7 @@ pub const BeaconState = struct {
     genesis_time: u64,
     genesis_validators_root: primitives.Root,
     slot: primitives.Slot,
-    fork: *consensus.Fork,
+    fork: consensus.Fork,
     latest_block_header: ?*consensus.BeaconBlockHeader,
     block_roots: []primitives.Root,
     state_roots: []primitives.Root,

@@ -434,6 +434,18 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    pub fn genesisValidatorsRoot(self: *const BeaconState) primitives.Root {
+        return switch (self.*) {
+            inline else => |state| state.genesis_validators_root,
+        };
+    }
+
+    pub fn fork(self: *const BeaconState) Fork {
+        return switch (self.*) {
+            inline else => |state| state.fork,
+        };
+    }
+
     /// randaoMixes returns the randao mixes of the given state.
     /// @return The randao mixes of the state.
     pub fn randaoMixes(self: *const BeaconState) []const primitives.Root {
