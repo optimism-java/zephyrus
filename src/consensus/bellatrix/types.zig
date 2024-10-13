@@ -54,10 +54,10 @@ pub const BeaconBlockBody = @Type(
             .fields = @typeInfo(altair.BeaconBlockBody).@"struct".fields ++ &[_]std.builtin.Type.StructField{
                 .{
                     .name = "execution_payload",
-                    .type = ?*consensus.ExecutionPayload,
+                    .type = consensus.ExecutionPayload,
                     .default_value = null,
                     .is_comptime = false,
-                    .alignment = @alignOf(?*consensus.ExecutionPayload),
+                    .alignment = @alignOf(consensus.ExecutionPayload),
                 },
             },
             .decls = &.{},
@@ -73,10 +73,10 @@ pub const BeaconState = @Type(
             .fields = @typeInfo(altair.BeaconState).@"struct".fields ++ &[_]std.builtin.Type.StructField{
                 .{
                     .name = "latest_execution_payload_header",
-                    .type = ?*consensus.ExecutionPayloadHeader,
+                    .type = consensus.ExecutionPayloadHeader,
                     .default_value = null,
                     .is_comptime = false,
-                    .alignment = @alignOf(?*consensus.ExecutionPayloadHeader),
+                    .alignment = @alignOf(consensus.ExecutionPayloadHeader),
                 },
             },
             .decls = &.{},

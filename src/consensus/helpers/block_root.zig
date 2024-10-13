@@ -46,7 +46,7 @@ pub fn getBlockRoot(state: *const consensus.BeaconState, epoch: primitives.Epoch
 test "test get_block_root_at_slot" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -104,7 +104,7 @@ test "test get_block_root_at_slot" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -135,7 +135,7 @@ test "test get_block_root_at_slot" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -150,7 +150,7 @@ test "test get_block_root_at_slot" {
 test "test get_block_root" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -205,7 +205,7 @@ test "test get_block_root" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,

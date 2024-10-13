@@ -130,7 +130,7 @@ pub fn getBeaconProposerIndex(state: *const consensus.BeaconState, allocator: st
 test "test getCommitteeCountPerSlot" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -186,7 +186,7 @@ test "test getCommitteeCountPerSlot" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -219,7 +219,7 @@ test "test computeCommittee" {
 test "test getBeaconCommittee" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -286,7 +286,7 @@ test "test getBeaconCommittee" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -304,7 +304,7 @@ test "test getBeaconCommittee" {
 test "test getBeaconProposerIndex" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -371,7 +371,7 @@ test "test getBeaconProposerIndex" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,

@@ -52,7 +52,7 @@ pub const AttestationData = struct {
 pub const IndexedAttestation = struct {
     // # [Modified in Electra:EIP7549] size: MAX_VALIDATORS_PER_COMMITTEE * MAX_COMMITTEES_PER_SLOT
     attesting_indices: []primitives.ValidatorIndex,
-    data: ?*AttestationData,
+    data: AttestationData,
     signature: primitives.BLSSignature,
 };
 
@@ -68,16 +68,6 @@ pub const Eth1Data = struct {
     deposit_count: u64,
     block_hash: primitives.Hash32,
 };
-
-pub fn HistoricalBatchType(comptime T: preset.BeaconPreset) type {
-    return struct {
-        block_roots: [T.SLOTS_PER_HISTORICAL_ROOT]primitives.Root,
-        state_roots: [T.SLOTS_PER_HISTORICAL_ROOT]primitives.Root,
-    };
-}
-
-pub const HistoricalBatchMainnet = HistoricalBatchType(preset.mainnet_preset);
-pub const HistoricalBatchMininal = HistoricalBatchType(preset.minimal_preset);
 
 pub const HistoricalBatch = struct {
     block_roots: []primitives.Root,
@@ -111,8 +101,8 @@ pub const SigningData = struct {
 };
 
 pub const AttesterSlashing = struct {
-    attestation_1: ?*IndexedAttestation, // # [Modified in Electra:EIP7549]
-    attestation_2: ?*IndexedAttestation, // # [Modified in Electra:EIP7549]
+    attestation_1: IndexedAttestation, // # [Modified in Electra:EIP7549]
+    attestation_2: IndexedAttestation, // # [Modified in Electra:EIP7549]
 };
 
 pub const Attestation = union(primitives.ForkType) {
@@ -122,11 +112,23 @@ pub const Attestation = union(primitives.ForkType) {
     capella: phase0.Attestation,
     deneb: phase0.Attestation,
     electra: electra.Attestation,
+
+    pub fn data(self: *const Attestation) AttestationData {
+        return switch (self.*) {
+            inline else => |attestation| attestation.data,
+        };
+    }
+
+    pub fn aggregationBits(self: *const Attestation) []bool {
+        return switch (self.*) {
+            inline else => |attestation| attestation.aggregation_bits,
+        };
+    }
 };
 
 pub const Deposit = struct {
     proof: [constants.DEPOSIT_CONTRACT_TREE_DEPTH + 1]primitives.Bytes32,
-    data: ?*DepositData,
+    data: DepositData,
 };
 
 pub const VoluntaryExit = struct {
@@ -144,13 +146,13 @@ pub const SignedVoluntaryExit = union(primitives.ForkType) {
 };
 
 pub const SignedBeaconBlockHeader = struct {
-    message: ?*BeaconBlockHeader,
+    message: BeaconBlockHeader,
     signature: primitives.BLSSignature,
 };
 
 pub const ProposerSlashing = struct {
-    signed_header_1: ?*SignedBeaconBlockHeader,
-    signed_header_2: ?*SignedBeaconBlockHeader,
+    signed_header_1: SignedBeaconBlockHeader,
+    signed_header_2: SignedBeaconBlockHeader,
 };
 
 pub const Eth1Block = struct {
@@ -161,7 +163,7 @@ pub const Eth1Block = struct {
 
 pub const AggregateAndProof = struct {
     aggregator_index: primitives.ValidatorIndex,
-    aggregate: ?*Attestation,
+    aggregate: Attestation,
     selection_proof: primitives.BLSSignature,
 };
 
@@ -224,7 +226,7 @@ pub const BeaconBlock = struct {
     proposer_index: primitives.ValidatorIndex,
     parent_root: primitives.Root,
     state_root: primitives.Root,
-    body: *BeaconBlockBody,
+    body: BeaconBlockBody,
 };
 
 pub const BeaconBlockBody = union(primitives.ForkType) {
@@ -237,7 +239,7 @@ pub const BeaconBlockBody = union(primitives.ForkType) {
 };
 
 pub const SignedBeaconBlock = struct {
-    message: ?*BeaconBlock,
+    message: BeaconBlock,
     signature: primitives.BLSSignature,
 };
 
@@ -604,11 +606,11 @@ test "test LightClientHeader" {
 
     const header1 = LightClientHeader{
         .altair = altair.LightClientHeader{
-            .beacon = null,
+            .beacon = undefined,
         },
     };
 
-    try std.testing.expectEqual(header1.altair.beacon, null);
+    try std.testing.expectEqual(header1.altair.beacon, undefined);
 }
 
 test "test LightClientOptimisticUpdate" {
@@ -620,13 +622,13 @@ test "test LightClientOptimisticUpdate" {
 
     const update1 = LightClientOptimisticUpdate{
         .altair = altair.LightClientOptimisticUpdate{
-            .attested_header = null,
-            .sync_aggregate = null,
+            .attested_header = undefined,
+            .sync_aggregate = undefined,
             .signature_slot = 0,
         },
     };
 
-    try std.testing.expectEqual(update1.altair.attested_header, null);
+    try std.testing.expectEqual(update1.altair.attested_header, undefined);
 }
 
 test "test LightClientFinalityUpdate" {
@@ -644,10 +646,10 @@ test "test LightClientFinalityUpdate" {
 
     const update1 = LightClientFinalityUpdate{
         .altair = altair.LightClientFinalityUpdate{
-            .attested_header = null,
-            .finalized_header = null,
+            .attested_header = undefined,
+            .finalized_header = undefined,
             .finality_branch = finality_branch,
-            .sync_aggregate = null,
+            .sync_aggregate = undefined,
             .signature_slot = 0,
         },
     };
@@ -676,12 +678,12 @@ test "test LightClientUpdate" {
 
     const update1 = LightClientUpdate{
         .altair = altair.LightClientUpdate{
-            .attested_header = null,
-            .next_sync_committee = null,
+            .attested_header = undefined,
+            .next_sync_committee = undefined,
             .next_sync_committee_branch = next_sync_committee_branch,
-            .finalized_header = null,
+            .finalized_header = undefined,
             .finality_branch = finality_branch,
-            .sync_aggregate = null,
+            .sync_aggregate = undefined,
             .signature_slot = 0,
         },
     };
@@ -704,8 +706,8 @@ test "test LightClientBootstrap" {
 
     const bootstrap1 = LightClientBootstrap{
         .altair = altair.LightClientBootstrap{
-            .header = null,
-            .current_sync_committee = null,
+            .header = undefined,
+            .current_sync_committee = undefined,
             .current_sync_committee_branch = current_sync_committee_branch,
         },
     };
@@ -777,12 +779,12 @@ test "test SignedBLSToExecutionChange" {
 
     const change1 = SignedBLSToExecutionChange{
         .capella = capella.SignedBLSToExecutionChange{
-            .message = null,
+            .message = undefined,
             .signature = undefined,
         },
     };
 
-    try std.testing.expectEqual(change1.capella.message, null);
+    try std.testing.expectEqual(change1.capella.message, undefined);
 }
 
 test "test HistoricalSummary" {

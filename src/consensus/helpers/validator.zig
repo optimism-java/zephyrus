@@ -179,7 +179,7 @@ test "test getValidatorChurnLimit" {
     defer preset.ActivePreset.reset();
     configs.ActiveConfig.set(preset.Presets.minimal);
     defer configs.ActiveConfig.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -236,7 +236,7 @@ test "test getValidatorChurnLimit" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -274,7 +274,7 @@ test "test getValidatorChurnLimit" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -320,7 +320,7 @@ test "test isEligibleForActivationQueue" {
 }
 
 test "test isEligibleForActivation" {
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -346,7 +346,7 @@ test "test isEligibleForActivation" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
         },
     };
@@ -413,7 +413,7 @@ test "test isSlashableValidator" {
 }
 
 test "test_getActiveValidatorIndices_withTwoActiveValidators" {
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -466,7 +466,7 @@ test "test_getActiveValidatorIndices_withTwoActiveValidators" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -482,7 +482,7 @@ test "test_getActiveValidatorIndices_withTwoActiveValidators" {
 test "test computeProposerIndex" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -538,7 +538,7 @@ test "test computeProposerIndex" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,

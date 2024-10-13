@@ -14,7 +14,7 @@ pub const BlobSidecar = struct {
     blob: primitives.Blob,
     kzg_commitment: primitives.KZGCommitment,
     kzg_proof: primitives.KZGProof,
-    signed_block_header: ?*consensus.SignedBeaconBlockHeader,
+    signed_block_header: consensus.SignedBeaconBlockHeader,
     kzg_commitment_inclusion_proof: []primitives.Bytes32,
 };
 

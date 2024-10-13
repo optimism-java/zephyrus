@@ -5,41 +5,41 @@ const consensus = @import("../../consensus/types.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");
 
 pub const LightClientHeader = struct {
-    beacon: ?*consensus.BeaconBlockHeader,
+    beacon: consensus.BeaconBlockHeader,
 };
 
 pub const LightClientOptimisticUpdate = struct {
-    attested_header: ?*consensus.LightClientHeader,
-    sync_aggregate: ?*consensus.SyncAggregate,
+    attested_header: consensus.LightClientHeader,
+    sync_aggregate: consensus.SyncAggregate,
     signature_slot: primitives.Slot,
 };
 
 pub const LightClientFinalityUpdate = struct {
-    attested_header: ?*consensus.LightClientHeader,
-    finalized_header: ?*consensus.LightClientHeader,
+    attested_header: consensus.LightClientHeader,
+    finalized_header: consensus.LightClientHeader,
     finality_branch: primitives.FinalityBranch,
-    sync_aggregate: ?*consensus.SyncAggregate,
+    sync_aggregate: consensus.SyncAggregate,
     signature_slot: primitives.Slot,
 };
 
 pub const LightClientUpdate = struct {
-    attested_header: ?*consensus.LightClientHeader,
-    next_sync_committee: ?*consensus.SyncCommittee,
+    attested_header: consensus.LightClientHeader,
+    next_sync_committee: consensus.SyncCommittee,
     next_sync_committee_branch: primitives.NextSyncCommitteeBranch,
-    finalized_header: ?*consensus.LightClientHeader,
+    finalized_header: consensus.LightClientHeader,
     finality_branch: primitives.FinalityBranch,
-    sync_aggregate: ?*consensus.SyncAggregate,
+    sync_aggregate: consensus.SyncAggregate,
     signature_slot: primitives.Slot,
 };
 
 pub const LightClientBootstrap = struct {
-    header: ?*consensus.LightClientHeader,
-    current_sync_committee: ?*consensus.SyncCommittee,
+    header: consensus.LightClientHeader,
+    current_sync_committee: consensus.SyncCommittee,
     current_sync_committee_branch: primitives.CurrentSyncCommitteeBranch,
 };
 
 pub const SignedVoluntaryExit = struct {
-    message: ?*consensus.VoluntaryExit,
+    message: consensus.VoluntaryExit,
     signature: primitives.BLSSignature,
 };
 
@@ -70,12 +70,12 @@ pub const SyncCommitteeContribution = struct {
 
 pub const ContributionAndProof = struct {
     aggregator_index: primitives.ValidatorIndex,
-    aggregate: ?*consensus.SyncCommitteeContribution,
+    contribution: consensus.SyncCommitteeContribution,
     selection_proof: primitives.BLSSignature,
 };
 
 pub const SignedContributionAndProof = struct {
-    message: ?*consensus.ContributionAndProof,
+    message: consensus.ContributionAndProof,
     signature: primitives.BLSSignature,
 };
 
@@ -86,10 +86,10 @@ pub const BeaconBlockBody = @Type(
             .fields = @typeInfo(phase0.BeaconBlockBody).@"struct".fields ++ &[_]std.builtin.Type.StructField{
                 .{
                     .name = "sync_aggregate",
-                    .type = ?*consensus.SyncAggregate,
+                    .type = consensus.SyncAggregate,
                     .default_value = null,
                     .is_comptime = false,
-                    .alignment = @alignOf(?*consensus.SyncAggregate),
+                    .alignment = @alignOf(consensus.SyncAggregate),
                 },
             },
             .decls = &.{},
@@ -112,17 +112,17 @@ pub const BeaconState = @Type(
                 },
                 .{
                     .name = "current_sync_committee",
-                    .type = ?*consensus.SyncCommittee,
+                    .type = consensus.SyncCommittee,
                     .default_value = null,
                     .is_comptime = false,
-                    .alignment = @alignOf(?*consensus.SyncCommittee),
+                    .alignment = @alignOf(consensus.SyncCommittee),
                 },
                 .{
                     .name = "next_sync_committee",
-                    .type = ?*consensus.SyncCommittee,
+                    .type = consensus.SyncCommittee,
                     .default_value = null,
                     .is_comptime = false,
-                    .alignment = @alignOf(?*consensus.SyncCommittee),
+                    .alignment = @alignOf(consensus.SyncCommittee),
                 },
             },
             .decls = &.{},
@@ -180,11 +180,11 @@ test "test BeaconBlockBody" {
 
 test "test SignedVoluntaryExit" {
     const exit = SignedVoluntaryExit{
-        .message = null,
+        .message = undefined,
         .signature = undefined,
     };
 
-    try std.testing.expectEqual(exit.message, null);
+    try std.testing.expectEqual(exit.message, undefined);
 }
 
 test "test SyncAggregate" {
@@ -231,7 +231,7 @@ test "test SyncCommitteeContribution" {
 test "test ContributionAndProof" {
     const contribution = ContributionAndProof{
         .aggregator_index = 0,
-        .aggregate = null,
+        .contribution = undefined,
         .selection_proof = undefined,
     };
 
@@ -240,30 +240,30 @@ test "test ContributionAndProof" {
 
 test "test SignedContributionAndProof" {
     const contribution = SignedContributionAndProof{
-        .message = null,
+        .message = undefined,
         .signature = undefined,
     };
 
-    try std.testing.expectEqual(contribution.message, null);
+    try std.testing.expectEqual(contribution.message, undefined);
 }
 
 test "test LightClientHeader" {
     const header = LightClientHeader{
-        .beacon = null,
+        .beacon = undefined,
     };
 
-    try std.testing.expectEqual(header.beacon, null);
+    try std.testing.expectEqual(header.beacon, undefined);
 }
 
 test "test LightClientOptimisticUpdate" {
     const update = LightClientOptimisticUpdate{
-        .attested_header = null,
-        .sync_aggregate = null,
+        .attested_header = undefined,
+        .sync_aggregate = undefined,
         .signature_slot = 0,
     };
 
-    try std.testing.expectEqual(update.attested_header, null);
-    try std.testing.expectEqual(update.sync_aggregate, null);
+    try std.testing.expectEqual(update.attested_header, undefined);
+    try std.testing.expectEqual(update.sync_aggregate, undefined);
     try std.testing.expectEqual(update.signature_slot, 0);
 }
 
@@ -275,17 +275,17 @@ test "test LightClientFinalityUpdate" {
     };
 
     const update = LightClientFinalityUpdate{
-        .attested_header = null,
-        .finalized_header = null,
+        .attested_header = undefined,
+        .finalized_header = undefined,
         .finality_branch = finality_branch,
-        .sync_aggregate = null,
+        .sync_aggregate = undefined,
         .signature_slot = 0,
     };
 
-    try std.testing.expectEqual(update.attested_header, null);
-    try std.testing.expectEqual(update.finalized_header, null);
+    try std.testing.expectEqual(update.attested_header, undefined);
+    try std.testing.expectEqual(update.finalized_header, undefined);
     try std.testing.expect(update.finality_branch.altair.len == 6);
-    try std.testing.expectEqual(update.sync_aggregate, null);
+    try std.testing.expectEqual(update.sync_aggregate, undefined);
     try std.testing.expectEqual(update.signature_slot, 0);
 }
 
@@ -303,21 +303,21 @@ test "test LightClientUpdate" {
     };
 
     const update = LightClientUpdate{
-        .attested_header = null,
-        .next_sync_committee = null,
+        .attested_header = undefined,
+        .next_sync_committee = undefined,
         .next_sync_committee_branch = next_sync_committee_branch,
-        .finalized_header = null,
+        .finalized_header = undefined,
         .finality_branch = finality_branch,
-        .sync_aggregate = null,
+        .sync_aggregate = undefined,
         .signature_slot = 0,
     };
 
-    try std.testing.expectEqual(update.attested_header, null);
-    try std.testing.expectEqual(update.next_sync_committee, null);
+    try std.testing.expectEqual(update.attested_header, undefined);
+    try std.testing.expectEqual(update.next_sync_committee, undefined);
     try std.testing.expect(update.next_sync_committee_branch.altair.len == 5);
-    try std.testing.expectEqual(update.finalized_header, null);
+    try std.testing.expectEqual(update.finalized_header, undefined);
     try std.testing.expect(update.finality_branch.altair.len == 6);
-    try std.testing.expectEqual(update.sync_aggregate, null);
+    try std.testing.expectEqual(update.sync_aggregate, undefined);
     try std.testing.expectEqual(update.signature_slot, 0);
 }
 
@@ -329,12 +329,12 @@ test "test LightClientBootstrap" {
     };
 
     const bootstrap = LightClientBootstrap{
-        .header = null,
-        .current_sync_committee = null,
+        .header = undefined,
+        .current_sync_committee = undefined,
         .current_sync_committee_branch = current_sync_committee_branch,
     };
 
-    try std.testing.expectEqual(bootstrap.header, null);
-    try std.testing.expectEqual(bootstrap.current_sync_committee, null);
+    try std.testing.expectEqual(bootstrap.header, undefined);
+    try std.testing.expectEqual(bootstrap.current_sync_committee, undefined);
     try std.testing.expect(bootstrap.current_sync_committee_branch.altair.len == 5);
 }

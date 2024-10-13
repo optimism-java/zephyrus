@@ -50,7 +50,7 @@ pub fn getSeed(state: *const consensus.BeaconState, epoch: primitives.Epoch, dom
 test "test get_randao_mix" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -95,7 +95,7 @@ test "test get_randao_mix" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -116,7 +116,7 @@ test "test get_randao_mix" {
 test "test get_seed" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -172,7 +172,7 @@ test "test get_seed" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,

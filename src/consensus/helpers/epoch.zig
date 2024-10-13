@@ -114,7 +114,7 @@ test "test get_current_epoch" {
     preset.ActivePreset.set(preset.Presets.mainnet);
     defer preset.ActivePreset.reset();
 
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -167,7 +167,7 @@ test "test get_current_epoch" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
@@ -182,7 +182,7 @@ test "test get_current_epoch" {
 test "test get_previous_epoch" {
     preset.ActivePreset.set(preset.Presets.mainnet);
     defer preset.ActivePreset.reset();
-    var finalized_checkpoint = consensus.Checkpoint{
+    const finalized_checkpoint = consensus.Checkpoint{
         .epoch = 5,
         .root = .{0} ** 32,
     };
@@ -231,7 +231,7 @@ test "test get_previous_epoch" {
             .justification_bits = undefined,
             .previous_justified_checkpoint = undefined,
             .current_justified_checkpoint = undefined,
-            .finalized_checkpoint = &finalized_checkpoint,
+            .finalized_checkpoint = finalized_checkpoint,
             .latest_block_header = undefined,
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,

@@ -19,10 +19,10 @@ pub const LightClientHeader = @Type(
             .fields = @typeInfo(altair.LightClientHeader).@"struct".fields ++ &[_]std.builtin.Type.StructField{
                 .{
                     .name = "execution",
-                    .type = ?*consensus.ExecutionPayloadHeader,
+                    .type = consensus.ExecutionPayloadHeader,
                     .default_value = null,
                     .is_comptime = false,
-                    .alignment = @alignOf(?*consensus.ExecutionPayloadHeader),
+                    .alignment = @alignOf(consensus.ExecutionPayloadHeader),
                 },
                 .{
                     .name = "execution_branch",
@@ -52,7 +52,7 @@ pub const BLSToExecutionChange = struct {
 };
 
 pub const SignedBLSToExecutionChange = struct {
-    message: ?*consensus.BLSToExecutionChange,
+    message: consensus.BLSToExecutionChange,
     signature: primitives.BLSSignature,
 };
 
@@ -243,13 +243,13 @@ test "test BeaconState" {
 
 test "test LightClientHeader" {
     const header = LightClientHeader{
-        .beacon = null,
-        .execution = null,
+        .beacon = undefined,
+        .execution = undefined,
         .execution_branch = undefined,
     };
 
-    try std.testing.expectEqual(header.beacon, null);
-    try std.testing.expectEqual(header.execution, null);
+    try std.testing.expectEqual(header.beacon, undefined);
+    try std.testing.expectEqual(header.execution, undefined);
 }
 
 test "test Withdrawal" {
@@ -275,11 +275,11 @@ test "test BLSToExecutionChange" {
 
 test "test SignedBLSToExecutionChange" {
     const change = SignedBLSToExecutionChange{
-        .message = null,
+        .message = undefined,
         .signature = undefined,
     };
 
-    try std.testing.expectEqual(change.message, null);
+    try std.testing.expectEqual(change.message, undefined);
 }
 
 test "test HistoricalSummary" {
