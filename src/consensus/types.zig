@@ -446,6 +446,12 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    pub fn balances(self: *const BeaconState) []primitives.Gwei {
+        return switch (self.*) {
+            inline else => |state| state.balances,
+        };
+    }
+
     pub fn genesisValidatorsRoot(self: *const BeaconState) primitives.Root {
         return switch (self.*) {
             inline else => |state| state.genesis_validators_root,

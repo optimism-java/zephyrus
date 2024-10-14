@@ -32,6 +32,17 @@ pub fn getTotalBalance(state: *const consensus.BeaconState, indices: std.AutoHas
     return @max(preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT, total);
 }
 
+/// getTotalActiveBalance returns the sum of the effective balances in Gwei of the active validators in the beacon state.
+/// @param state - The state.
+/// @param allocator - The allocator to use.
+/// @returns The sum of the effective balances in Gwei of the active validators in the beacon state.
+/// Spec pseudocode definition:
+/// def get_total_active_balance(state: BeaconState) -> Gwei:
+///     """
+///     Return the combined effective balance of the active validators.
+///     Note: ``get_total_balance`` returns ``EFFECTIVE_BALANCE_INCREMENT`` Gwei minimum to avoid divisions by zero.
+///     """
+///    return get_total_balance(state, set(get_active_validator_indices(state, get_current_epoch(state))))
 pub fn getTotalActiveBalance(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.Gwei {
     const active_indices = try validator_helper.getActiveValidatorIndices(state, epoch_helper.getCurrentEpoch(state), allocator);
     defer allocator.free(active_indices);
@@ -43,6 +54,39 @@ pub fn getTotalActiveBalance(state: *const consensus.BeaconState, allocator: std
     }
 
     return getTotalBalance(state, indices_set);
+}
+
+/// increaseBalance increases the validator balance at index `index` by `delta`.
+/// @param state - The state.
+/// @param index - The index of the validator to increase the balance of.
+/// @param delta - The amount to increase the balance by.
+/// Spec pseudocode definition:
+/// def increase_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
+///     """
+///     Increase the validator balance at index ``index`` by ``delta``.
+///     """
+///     state.balances[index] += delta
+pub fn increaseBalance(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, delta: primitives.Gwei) void {
+    // Increase the validator balance at index `index` by `delta`.
+    state.balances()[index] += delta;
+}
+
+/// decreaseBalance decreases the validator balance at index `index` by `delta`.
+/// @param state - The state.
+/// @param index - The index of the validator to decrease the balance of.
+/// @param delta - The amount to decrease the balance by.
+/// Spec pseudocode definition:
+/// def decrease_balance(state: BeaconState, index: ValidatorIndex, delta: Gwei) -> None:
+///     """
+///     Decrease the validator balance at index ``index`` by ``delta``, with underflow protection.
+///     """
+///     state.balances[index] = 0 if delta > state.balances[index] else state.balances[index] - delta
+pub fn decreaseBalance(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, delta: primitives.Gwei) void {
+    if (delta > state.balances()[index]) {
+        state.balances()[index] = 0;
+    } else {
+        state.balances()[index] -= delta;
+    }
 }
 
 test "test getTotalBalance" {
@@ -196,5 +240,93 @@ test "test getTotalActiveBalance" {
     try std.testing.expectEqual(
         50000000000000000,
         total,
+    );
+}
+
+test "test increaseBalance" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+
+    var balances = [_]primitives.Gwei{ 0, 10000000000, 100000000000, 1000000000000 };
+    const state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = undefined,
+            .balances = &balances,
+            .randao_mixes = undefined,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = undefined,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    increaseBalance(&state, 2, 10000000000);
+    try std.testing.expectEqual(
+        110000000000,
+        state.balances()[2],
+    );
+}
+
+test "test decreaseBalance" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+
+    var balances = [_]primitives.Gwei{ 0, 10000000000, 100000000000, 1000000000000 };
+    const state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = undefined,
+            .balances = &balances,
+            .randao_mixes = undefined,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = undefined,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    decreaseBalance(&state, 2, 10000000000);
+    try std.testing.expectEqual(
+        90000000000,
+        state.balances()[2],
+    );
+
+    decreaseBalance(&state, 2, 100000000000);
+    try std.testing.expectEqual(
+        0,
+        state.balances()[2],
     );
 }
