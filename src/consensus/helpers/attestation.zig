@@ -10,6 +10,45 @@ const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const committee_helper = @import("../../consensus/helpers/committee.zig");
 const electra = @import("../../consensus/electra/types.zig");
 
+/// getIndexedAttestation returns the indexed attestation corresponding to the attestation.
+/// @param state The state.
+/// @param attestation The attestation.
+/// @param allocator The allocator to use.
+/// @returns The indexed attestation.
+/// Spec pseudocode definition:
+/// def get_indexed_attestation(state: BeaconState, attestation: Attestation) -> IndexedAttestation:
+///     """
+///     Return the indexed attestation corresponding to ``attestation``.
+///    """
+///     attesting_indices = get_attesting_indices(state, attestation)
+///
+///     return IndexedAttestation(
+///       attesting_indices=sorted(attesting_indices),
+///       data=attestation.data,
+///       signature=attestation.signature,
+///     )
+pub fn getIndexedAttestation(state: *const consensus.BeaconState, attestation: *const consensus.Attestation, allocator: std.mem.Allocator) !consensus.IndexedAttestation {
+    // Return the indexed attestation corresponding to `attestation`.
+    var attesting_indices = try getAttestingIndices(state, attestation, allocator);
+    defer attesting_indices.deinit();
+
+    var keys = try std.ArrayList(primitives.ValidatorIndex).initCapacity(allocator, attesting_indices.count());
+    defer keys.deinit();
+
+    var indexIterator = attesting_indices.keyIterator();
+    while (indexIterator.next()) |key| {
+        try keys.append(key.*);
+    }
+
+    std.mem.sort(primitives.ValidatorIndex, keys.items, {}, comptime std.sort.asc(primitives.ValidatorIndex));
+
+    return consensus.IndexedAttestation{
+        .attesting_indices = try keys.toOwnedSlice(),
+        .data = attestation.data(),
+        .signature = attestation.signature(),
+    };
+}
+
 /// isSlashableAttestationData checks if two attestations are slashable according to Casper FFG rules.
 /// @param data_1 The first attestation data.
 /// @param data_2 The second attestation data.
@@ -319,4 +358,116 @@ test "test getAttestingIndices" {
     var indices = try getAttestingIndices(&state, &attestation, std.testing.allocator);
     defer indices.deinit();
     try std.testing.expect(indices.count() == 32);
+}
+
+test "test getIndexedAttestation" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    const finalized_checkpoint = consensus.Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 0,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+    for (0..1000) |_| {
+        try validators.append(validator1);
+        try validators.append(validator2);
+    }
+
+    var block_roots = std.ArrayList(primitives.Root).init(std.testing.allocator);
+    defer block_roots.deinit();
+    const block_root1 = .{0} ** 32;
+    const block_root2 = .{1} ** 32;
+    const block_root3 = .{2} ** 32;
+    try block_roots.append(block_root1);
+    try block_roots.append(block_root2);
+    try block_roots.append(block_root3);
+
+    var randao_mixes = try std.ArrayList(primitives.Bytes32).initCapacity(std.testing.allocator, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
+    defer randao_mixes.deinit();
+    for (0..preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR) |slot_index| {
+        try randao_mixes.append(.{@as(u8, @intCast(slot_index))} ** 32);
+    }
+
+    var aggregation_bits = [_]bool{ true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true };
+    var committee_bits = [_]bool{ true, false, true, false };
+    const attestation = consensus.Attestation{
+        .electra = electra.Attestation{
+            .data = consensus.AttestationData{
+                .slot = 100,
+                .index = 1,
+                .beacon_block_root = .{0} ** 32,
+                .source = consensus.Checkpoint{
+                    .epoch = 0,
+                    .root = .{0} ** 32,
+                },
+                .target = consensus.Checkpoint{
+                    .epoch = 0,
+                    .root = .{0} ** 32,
+                },
+            },
+            .aggregation_bits = &aggregation_bits,
+            .signature = undefined,
+            .committee_bits = &committee_bits,
+        },
+    };
+
+    const state = consensus.BeaconState{
+        .electra = electra.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = block_roots.items,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = &[_]u64{},
+            .randao_mixes = randao_mixes.items,
+            .slashings = &[_]u64{},
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = &[_]u64{},
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .latest_execution_payload_header = undefined,
+            .historical_summaries = undefined,
+            .pending_balance_deposits = undefined,
+            .pending_partial_withdrawals = undefined,
+            .pending_consolidations = undefined,
+            .deposit_requests_start_index = 0,
+        },
+    };
+
+    const indexed_attestation = try getIndexedAttestation(&state, &attestation, std.testing.allocator);
+    defer indexed_attestation.deinit(std.testing.allocator);
+    try std.testing.expectEqual(indexed_attestation.attesting_indices.len, 32);
 }

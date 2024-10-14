@@ -54,6 +54,10 @@ pub const IndexedAttestation = struct {
     attesting_indices: []primitives.ValidatorIndex,
     data: AttestationData,
     signature: primitives.BLSSignature,
+
+    pub fn deinit(self: *const IndexedAttestation, allocator: std.mem.Allocator) void {
+        allocator.free(self.attesting_indices);
+    }
 };
 
 pub const PendingAttestation = struct {
@@ -112,6 +116,12 @@ pub const Attestation = union(primitives.ForkType) {
     capella: phase0.Attestation,
     deneb: phase0.Attestation,
     electra: electra.Attestation,
+
+    pub fn signature(self: *const Attestation) primitives.BLSSignature {
+        return switch (self.*) {
+            inline else => |attestation| attestation.signature,
+        };
+    }
 
     pub fn data(self: *const Attestation) AttestationData {
         return switch (self.*) {
