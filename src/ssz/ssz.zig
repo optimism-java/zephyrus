@@ -122,7 +122,7 @@ pub fn decodeSSZ(comptime T: type, serialized: []const u8) SSZDecodeErrors!T {
             comptime var num_fields = 0;
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
-                    .bool, .int => continue,
+                    .bool, .int, .array => continue,
                     else => num_fields += 1,
                 }
             }
@@ -134,7 +134,7 @@ pub fn decodeSSZ(comptime T: type, serialized: []const u8) SSZDecodeErrors!T {
             comptime var field_index = 0;
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
-                    .bool, .int => {
+                    .bool, .int, .array => {
                         @field(result, field.name) = try decodeSSZ(field.type, serialized[index .. index + @sizeOf(field.type)]);
                         index += @sizeOf(field.type);
                     },
@@ -149,7 +149,7 @@ pub fn decodeSSZ(comptime T: type, serialized: []const u8) SSZDecodeErrors!T {
             comptime var final_index = 0;
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
-                    .bool, .int => continue,
+                    .bool, .int, .array => continue,
                     else => {
                         const final = if (final_index == indices.len - 1) serialized.len else indices[final_index + 1];
                         @field(result, field.name) = try decodeSSZ(field.type, serialized[indices[final_index]..final]);
@@ -307,7 +307,7 @@ fn encodeItem(value: anytype, list: *std.ArrayList(u8)) Allocator.Error!void {
             comptime var start: usize = 0;
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
-                    .int, .bool => start += @sizeOf(field.type),
+                    .int, .bool, .array => start += @sizeOf(field.type),
                     else => start += 4,
                 }
             }
@@ -315,7 +315,7 @@ fn encodeItem(value: anytype, list: *std.ArrayList(u8)) Allocator.Error!void {
             var accumulate: usize = start;
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
-                    .int, .bool => try encodeItem(@field(value, field.name), list),
+                    .int, .bool, .array => try encodeItem(@field(value, field.name), list),
                     else => {
                         try encodeItem(@as(u32, @truncate(accumulate)), list);
                         accumulate += sizeOfValue(@field(value, field.name));
@@ -363,7 +363,7 @@ pub inline fn isStaticType(comptime T: type) bool {
 
     switch (info) {
         .bool, .int, .null => return true,
-        .array => return false,
+        .array => return true,
         .@"struct" => inline for (info.@"struct".fields) |field| {
             if (!isStaticType(field.type)) {
                 return false;
