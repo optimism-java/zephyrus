@@ -24,35 +24,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const yaml = b.addStaticLibrary(.{
-        .name = "yaml",
-        .optimize = optimize,
-        .target = target,
-    });
+    //  const dep = b.dependency("yaml", .{});
 
-    yaml.addCSourceFiles(.{ .root = b.path("clib/libyaml"), .files = &.{
-        "src/api.c",
-        "src/dumper.c",
-        "src/emitter.c",
-        "src/loader.c",
-        "src/parser.c",
-        "src/reader.c",
-        "src/scanner.c",
-        "src/writer.c",
-    }, .flags = &.{
-        "-DYAML_VERSION_MAJOR=0",
-        "-DYAML_VERSION_MINOR=2",
-        "-DYAML_VERSION_PATCH=5",
-        "-DYAML_VERSION_STRING=\"0.2.5\"",
-    } });
-
-    yaml.addIncludePath(b.path("clib/libyaml/src"));
-    yaml.addIncludePath(b.path("clib/libyaml/include"));
-    // yaml.installHeader(b.path("clib/libyaml/include/yaml.h"), "yaml.h");
-    yaml.linkLibC();
-    yaml.linkLibCpp();
+    const yaml = buildYaml(b, target, optimize);
     b.installArtifact(yaml);
-    
+    lib.addIncludePath(b.path("clib/libyaml/include"));
+
     // Add ssz.zig as a dependency to the library
     // const ssz_dep = b.dependency(
     //     "zabi",
@@ -66,9 +43,6 @@ pub fn build(b: *std.Build) void {
     // This declares intent for the library to be installed into the standard
     // location when the user invokes the "install" step (the default step when
     // running `zig build`).
-    lib.addIncludePath(b.path("clib/libyaml/include"));
-    lib.linkLibrary(yaml);
-    lib.linkLibC();
     b.installArtifact(lib);
 
     const exe = b.addExecutable(.{
@@ -114,6 +88,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    lib_unit_tests.addIncludePath(b.path("clib/libyaml/include"));
 
     // lib_unit_tests.root_module.addImport("zabi", ssz_dep.module("zabi"));
 
@@ -133,4 +108,43 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+}
+
+fn buildYaml(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.Mode) *std.Build.Step.Compile {
+    const lib = b.addStaticLibrary(.{
+        .name = "yaml",
+        .target = target,
+        .optimize = optimize,
+    });
+
+    lib.addIncludePath(b.path("clib/libyaml/src"));
+    lib.addIncludePath(b.path("clib/libyaml/include"));
+    lib.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "" } });
+
+    lib.addCSourceFiles(.{
+        .root = b.path("clib/libyaml"),
+        .files = &.{
+            "src/api.c",
+            "src/dumper.c",
+            "src/emitter.c",
+            "src/loader.c",
+            "src/parser.c",
+            "src/reader.c",
+            "src/scanner.c",
+            "src/writer.c",
+        },
+        .flags = &.{
+            "-DYAML_VERSION_MAJOR=0",
+            "-DYAML_VERSION_MINOR=2",
+            "-DYAML_VERSION_PATCH=5",
+            "-DYAML_VERSION_STRING=\"0.2.5\"",
+        },
+    });
+    // lib.installHeader(b.path("clib/libyaml/inclued/yaml.h"), "yaml.h");
+    lib.installHeadersDirectory(b.path("clib/libyaml/src"), "", .{});
+    lib.installHeadersDirectory(b.path("clib/libyaml/include"), "", .{});
+    lib.addIncludePath(b.path("clib/libyaml/include"));
+    lib.linkLibC();
+
+    return lib;
 }
