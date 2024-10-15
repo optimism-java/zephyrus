@@ -6,6 +6,8 @@ const constants = @import("../../primitives/constants.zig");
 const preset = @import("../../presets/preset.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");
 const altair = @import("../../consensus/altair/types.zig");
+const electra = @import("../../consensus/electra/types.zig");
+const validator_helper = @import("../../consensus/helpers/validator.zig");
 
 /// getCurrentEpoch returns the current epoch for the given state.
 /// @return The current epoch.
@@ -76,6 +78,206 @@ pub fn computeStartSlotAtEpoch(epoch: primitives.Epoch) primitives.Slot {
 ///     return Epoch(epoch + 1 + MAX_SEED_LOOKAHEAD)
 pub fn computeActivationExitEpoch(epoch: primitives.Epoch) primitives.Epoch {
     return @as(primitives.Epoch, epoch + 1 + preset.ActivePreset.get().MAX_SEED_LOOKAHEAD);
+}
+
+/// computeExitEpochAndUpdateChurn computes the exit epoch and updates the churn for the given state.
+/// @param state - The state.
+/// @param exit_balance - The exit balance.
+/// @param allocator - The allocator.
+/// @return The exit epoch and the updated churn.
+/// Spec pseudocode definition:
+/// def compute_exit_epoch_and_update_churn(state: BeaconState, exit_balance: Gwei) -> Epoch:
+///     earliest_exit_epoch = max(state.earliest_exit_epoch, compute_activation_exit_epoch(get_current_epoch(state)))
+///     per_epoch_churn = get_activation_exit_churn_limit(state)
+///     # New epoch for exits.
+///     if state.earliest_exit_epoch < earliest_exit_epoch:
+///         exit_balance_to_consume = per_epoch_churn
+///     else:
+///        exit_balance_to_consume = state.exit_balance_to_consume
+///
+///    # Exit doesn't fit in the current earliest epoch.
+///    if exit_balance > exit_balance_to_consume:
+///        balance_to_process = exit_balance - exit_balance_to_consume
+///        additional_epochs = (balance_to_process - 1) // per_epoch_churn + 1
+///        earliest_exit_epoch += additional_epochs
+///        exit_balance_to_consume += additional_epochs * per_epoch_churn
+///
+///   # Consume the balance and update state variables.
+///   state.exit_balance_to_consume = exit_balance_to_consume - exit_balance
+///   state.earliest_exit_epoch = earliest_exit_epoch
+///
+///   return state.earliest_exit_epoch
+pub fn computeExitEpochAndUpdateChurn(state: *consensus.BeaconState, exit_balance: primitives.Gwei, allocator: std.mem.Allocator) !primitives.Epoch {
+    var earliest_exit_epoch = @max(state.electra.earliest_exit_epoch, computeActivationExitEpoch(getCurrentEpoch(state)));
+    const per_epoch_churn = try getActivationExitChurnLimit(state, allocator);
+    var exit_balance_to_consume: primitives.Gwei = undefined;
+
+    // New epoch for exits.
+    if (state.electra.earliest_exit_epoch < earliest_exit_epoch) {
+        exit_balance_to_consume = per_epoch_churn;
+    } else {
+        exit_balance_to_consume = state.electra.exit_balance_to_consume;
+    }
+
+    // Exit doesn't fit in the current earliest epoch.
+    if (exit_balance > exit_balance_to_consume) {
+        const balance_to_process = exit_balance - exit_balance_to_consume;
+        const additional_epochs = @divFloor((balance_to_process - 1), per_epoch_churn) + 1;
+        earliest_exit_epoch += additional_epochs;
+        exit_balance_to_consume += additional_epochs * per_epoch_churn;
+    }
+
+    // Consume the balance and update state variables.
+    state.electra.exit_balance_to_consume = exit_balance_to_consume - exit_balance;
+    state.electra.earliest_exit_epoch = earliest_exit_epoch;
+
+    return state.electra.earliest_exit_epoch;
+}
+
+/// getActivationExitChurnLimit returns the churn limit for the current epoch dedicated to activations and exits.
+/// @param state - The state.
+/// @param allocator - The allocator.
+/// @return The churn limit for the current epoch dedicated to activations and exits.
+/// Spec pseudocode definition:
+/// def get_activation_exit_churn_limit(state: BeaconState) -> Gwei:
+///     """
+///     Return the churn limit for the current epoch dedicated to activations and exits.
+///     """
+///     return min(config.MAX_PER_EPOCH_ACTIVATION_EXIT_CHURN_LIMIT, get_balance_churn_limit(state))
+pub fn getActivationExitChurnLimit(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.Gwei {
+    const balance_churn_limit = try validator_helper.getBalanceChurnLimit(state, allocator);
+    // Return the churn limit for the current epoch dedicated to activations and exits.
+    return @min(configs.ActiveConfig.get().MAX_PER_EPOCH_ACTIVATION_EXIT_CHURN_LIMIT, balance_churn_limit);
+}
+
+test "test compute_exit_epoch_and_update_churn" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    configs.ActiveConfig.set(preset.Presets.minimal);
+    defer configs.ActiveConfig.reset();
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 10000000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 10000000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+    try validators.append(validator1);
+    try validators.append(validator2);
+    var state = consensus.BeaconState{
+        .electra = electra.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 0,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = undefined,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = undefined,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+            .earliest_exit_epoch = 5,
+            .exit_balance_to_consume = 10000000000000,
+            .latest_execution_payload_header = undefined,
+            .historical_summaries = undefined,
+            .pending_balance_deposits = undefined,
+            .pending_partial_withdrawals = undefined,
+            .pending_consolidations = undefined,
+        },
+    };
+
+    const exit_epoch = try computeExitEpochAndUpdateChurn(&state, 10000000000000, std.testing.allocator);
+    try std.testing.expectEqual(5, exit_epoch);
+}
+
+test "test get_activation_exit_churn_limit" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    configs.ActiveConfig.set(preset.Presets.minimal);
+    defer configs.ActiveConfig.reset();
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 10000000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 10000000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+    try validators.append(validator1);
+    try validators.append(validator2);
+    var state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 0,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = undefined,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = undefined,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+    const churn_limit = try getActivationExitChurnLimit(&state, std.testing.allocator);
+    try std.testing.expectEqual(128000000000, churn_limit);
 }
 
 test "test compute_epoch_at_slot" {

@@ -8,6 +8,7 @@ const phase0 = @import("../../consensus/phase0/types.zig");
 const altair = @import("../../consensus/altair/types.zig");
 const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
+const balance = @import("../../consensus/helpers/balance.zig");
 
 /// Check if a validator is active at a given epoch.
 /// A validator is active if the current epoch is greater than or equal to the validator's activation epoch and less than the validator's exit epoch.
@@ -172,6 +173,130 @@ pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []cons
         }
         i += 1;
     }
+}
+
+/// getBalanceChurnLimit returns the balance churn limit for the current epoch.
+/// The churn limit is the maximum number of validators who can leave the validator set in one epoch.
+/// @param state The beacon state.
+/// @param allocator The allocator.
+/// @return The balance churn limit.
+/// Spec pseudocode definition:
+/// def get_balance_churn_limit(state: BeaconState) -> Gwei:
+///     """
+///     Return the churn limit for the current epoch.
+///     """
+///     churn = max(
+///         config.MIN_PER_EPOCH_CHURN_LIMIT_ELECTRA,
+///         get_total_active_balance(state) // config.CHURN_LIMIT_QUOTIENT
+///     )
+///     return churn - churn % EFFECTIVE_BALANCE_INCREMENT
+pub fn getBalanceChurnLimit(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.Gwei {
+    // Return the churn limit for the current epoch.
+    const total_active_balance = try balance.getTotalActiveBalance(state, allocator);
+    const churn = @max(configs.ActiveConfig.get().MIN_PER_EPOCH_CHURN_LIMIT_ELECTRA, @divFloor(total_active_balance, configs.ActiveConfig.get().CHURN_LIMIT_QUOTIENT));
+    return churn - @mod(churn, preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT);
+}
+
+pub fn initiateValidatorExit(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !void {
+    // Return if validator already initiated exit
+    var validator = state.validators()[index];
+    if (validator.exit_epoch != constants.FAR_FUTURE_EPOCH) {
+        return;
+    }
+
+    // Compute exit queue epoch
+    var exit_epochs = std.ArrayList(primitives.Epoch).init(allocator);
+    defer exit_epochs.deinit();
+
+    for (state.validators()) |v| {
+        if (v.exit_epoch != constants.FAR_FUTURE_EPOCH) {
+            try exit_epochs.append(v.exit_epoch);
+        }
+    }
+
+    var exit_queue_epoch = @max(std.mem.max(primitives.Epoch, exit_epochs.items), epoch_helper.computeActivationExitEpoch(epoch_helper.getCurrentEpoch(state)));
+
+    var exit_queue_churn: usize = 0;
+    for (state.validators()) |v| {
+        if (v.exit_epoch == exit_queue_epoch) {
+            exit_queue_churn += 1;
+        }
+    }
+
+    if (exit_queue_churn >= try getValidatorChurnLimit(state, allocator)) {
+        exit_queue_epoch += 1;
+    }
+
+    // Set validator exit epoch and withdrawable epoch
+    validator.exit_epoch = exit_queue_epoch;
+    validator.withdrawable_epoch = exit_queue_epoch + configs.ActiveConfig.get().MIN_VALIDATOR_WITHDRAWABILITY_DELAY;
+}
+
+test "test getBalanceChurnLimit" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    configs.ActiveConfig.set(preset.Presets.minimal);
+    defer configs.ActiveConfig.reset();
+    const finalized_checkpoint = consensus.Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 12312312312,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+    try validators.append(validator1);
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 232323232332,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 0,
+        .withdrawable_epoch = 0,
+    };
+    try validators.append(validator2);
+
+    const state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = undefined,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    const result = try getBalanceChurnLimit(&state, std.testing.allocator);
+    try std.testing.expectEqual(@as(primitives.Gwei, 64000000000), result);
 }
 
 test "test getValidatorChurnLimit" {
