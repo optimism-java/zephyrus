@@ -490,7 +490,7 @@ pub const BeaconState = union(primitives.ForkType) {
 
     /// validators returns the validators of the given state.
     /// @return The validators of the state.
-    pub fn validators(self: *const BeaconState) []const Validator {
+    pub fn validators(self: *const BeaconState) []Validator {
         return switch (self.*) {
             inline else => |state| state.validators,
         };

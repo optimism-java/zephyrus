@@ -197,9 +197,34 @@ pub fn getBalanceChurnLimit(state: *const consensus.BeaconState, allocator: std.
     return churn - @mod(churn, preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT);
 }
 
-pub fn initiateValidatorExit(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !void {
+/// initiateValidatorExitBellatrix sets the exit epoch and withdrawable epoch for a validator.
+/// @param state The beacon state.
+/// @param index The validator index.
+/// @param allocator The allocator.
+/// @return An error if the validator is already initiated exit.
+/// Spec pseudocode definition:
+/// def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
+///     """
+///     Initiate the exit of the validator with index ``index``.
+///     """
+///     # Return if validator already initiated exit
+///     validator = state.validators[index]
+///     if validator.exit_epoch != FAR_FUTURE_EPOCH:
+///         return
+///
+///    # Compute exit queue epoch
+///    exit_epochs = [v.exit_epoch for v in state.validators if v.exit_epoch != FAR_FUTURE_EPOCH]
+///    exit_queue_epoch = max(exit_epochs + [compute_activation_exit_epoch(get_current_epoch(state))])
+///    exit_queue_churn = len([v for v in state.validators if v.exit_epoch == exit_queue_epoch])
+///    if exit_queue_churn >= get_validator_churn_limit(state):
+///        exit_queue_epoch += Epoch(1)
+///
+///    # Set validator exit epoch and withdrawable epoch
+///    validator.exit_epoch = exit_queue_epoch
+///    validator.withdrawable_epoch = Epoch(validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
+fn initiateValidatorExitBellatrix(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !void {
     // Return if validator already initiated exit
-    var validator = state.validators()[index];
+    var validator = &state.validators()[index];
     if (validator.exit_epoch != constants.FAR_FUTURE_EPOCH) {
         return;
     }
@@ -230,6 +255,56 @@ pub fn initiateValidatorExit(state: *const consensus.BeaconState, index: primiti
     // Set validator exit epoch and withdrawable epoch
     validator.exit_epoch = exit_queue_epoch;
     validator.withdrawable_epoch = exit_queue_epoch + configs.ActiveConfig.get().MIN_VALIDATOR_WITHDRAWABILITY_DELAY;
+}
+
+/// initiateValidatorExitElectra sets the exit epoch and withdrawable epoch for a validator.
+/// @param state The beacon state.
+/// @param index The validator index.
+/// @param allocator The allocator.
+/// @return An error if the validator is already initiated exit.
+/// Spec pseudocode definition:
+/// def initiate_validator_exit(state: BeaconState, index: ValidatorIndex) -> None:
+///     """
+///     Initiate the exit of the validator with index ``index``.
+///     """
+///     # Return if validator already initiated exit
+///     validator = state.validators[index]
+///     if validator.exit_epoch != FAR_FUTURE_EPOCH:
+///         return
+///
+///     # Compute exit queue epoch [Modified in Electra:EIP7251]
+///     exit_queue_epoch = compute_exit_epoch_and_update_churn(state, validator.effective_balance)
+///
+///     # Set validator exit epoch and withdrawable epoch
+///     validator.exit_epoch = exit_queue_epoch
+///     validator.withdrawable_epoch = Epoch(validator.exit_epoch + config.MIN_VALIDATOR_WITHDRAWABILITY_DELAY)
+fn initiateValidatorExitElectra(state: *consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !void {
+    // Return if validator already initiated exit
+    var validator = &state.validators()[index];
+    if (validator.exit_epoch != constants.FAR_FUTURE_EPOCH) {
+        return;
+    }
+
+    // Compute exit queue epoch [Modified in Electra:EIP7251]
+    const exit_queue_epoch = try epoch_helper.computeExitEpochAndUpdateChurn(state, validator.effective_balance, allocator);
+
+    // Set validator exit epoch and withdrawable epoch
+    validator.exit_epoch = exit_queue_epoch;
+    validator.withdrawable_epoch = exit_queue_epoch + configs.ActiveConfig.get().MIN_VALIDATOR_WITHDRAWABILITY_DELAY;
+}
+
+/// initiateValidatorExit sets the exit epoch and withdrawable epoch for a validator.
+/// @param state The beacon state.
+/// @param index The index of the validator.
+/// @param allocator The allocator.
+/// @return An error if the validator is already initiated exit.
+/// Spec pseudocode definition:
+/// See `initiateValidatorExitElectra` and `initiateValidatorExitBellatrix` for the Bellatrix and Electra implementations.
+pub fn initiateValidatorExit(state: *consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !void {
+    switch (state.*) {
+        .electra => try initiateValidatorExitElectra(state, index, allocator),
+        else => try initiateValidatorExitBellatrix(state, index, allocator),
+    }
 }
 
 test "test getBalanceChurnLimit" {
