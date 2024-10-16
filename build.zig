@@ -27,8 +27,9 @@ pub fn build(b: *std.Build) void {
     //  const dep = b.dependency("yaml", .{});
 
     const yaml = buildYaml(b, target, optimize);
-    b.installArtifact(yaml);
-    lib.addIncludePath(b.path("clib/libyaml/include"));
+    lib.root_module.addImport("yaml", yaml);
+    // b.installArtifact(yaml);
+    // lib.addIncludePath(b.path("clib/libyaml/include"));
 
     // Add ssz.zig as a dependency to the library
     // const ssz_dep = b.dependency(
@@ -88,7 +89,8 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    lib_unit_tests.addIncludePath(b.path("clib/libyaml/include"));
+    // lib_unit_tests.addIncludePath(b.path("clib/libyaml/include"));
+    lib_unit_tests.root_module.addImport("yaml", yaml);
 
     // lib_unit_tests.root_module.addImport("zabi", ssz_dep.module("zabi"));
 
@@ -110,18 +112,31 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_exe_unit_tests.step);
 }
 
-fn buildYaml(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.Mode) *std.Build.Step.Compile {
-    const lib = b.addStaticLibrary(.{
+fn buildYaml(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.Mode) *std.Build.Module {
+    const translate_c = b.addTranslateC(.{
+        .root_source_file = b.path("clib/libyaml/include/yaml.h"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    const mod = b.addModule("yaml", .{
+        .root_source_file = translate_c.getOutput(),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+        .link_libcpp = true,
+    });
+
+    mod.addIncludePath(b.path("clib/libyaml/include"));
+    mod.addIncludePath(b.path("clib/libyaml/src"));
+
+    const yaml_a = b.addStaticLibrary(.{
         .name = "yaml",
         .target = target,
         .optimize = optimize,
     });
 
-    lib.addIncludePath(b.path("clib/libyaml/src"));
-    lib.addIncludePath(b.path("clib/libyaml/include"));
-    lib.addIncludePath(.{ .src_path = .{ .owner = b, .sub_path = "" } });
-
-    lib.addCSourceFiles(.{
+    yaml_a.addCSourceFiles(.{
         .root = b.path("clib/libyaml"),
         .files = &.{
             "src/api.c",
@@ -141,10 +156,12 @@ fn buildYaml(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.buil
         },
     });
     // lib.installHeader(b.path("clib/libyaml/inclued/yaml.h"), "yaml.h");
-    lib.installHeadersDirectory(b.path("clib/libyaml/src"), "", .{});
-    lib.installHeadersDirectory(b.path("clib/libyaml/include"), "", .{});
-    lib.addIncludePath(b.path("clib/libyaml/include"));
-    lib.linkLibC();
+    yaml_a.installHeadersDirectory(b.path("clib/libyaml/src"), "", .{});
+    yaml_a.installHeadersDirectory(b.path("clib/libyaml/include"), "", .{});
+    yaml_a.addIncludePath(b.path("clib/libyaml/include"));
+    yaml_a.linkLibC();
+    b.installArtifact(yaml_a);
+    mod.linkLibrary(yaml_a);
 
-    return lib;
+    return mod;
 }
