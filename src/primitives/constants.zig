@@ -38,3 +38,6 @@ pub const NEXT_SYNC_COMMITTEE_GINDEX_ELECTRA: usize = 87;
 pub const BYTES_PER_FIELD_ELEMENT: usize = 32;
 pub const FIELD_ELEMENTS_PER_BLOB: usize = 4096;
 pub const MAX_BLOBS_PER_BLOCK: usize = 6;
+
+pub const PROPOSER_WEIGHT: u64 = 8;
+pub const WEIGHT_DENOMINATOR: u64 = 64;

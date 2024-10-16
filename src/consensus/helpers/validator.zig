@@ -8,7 +8,8 @@ const phase0 = @import("../../consensus/phase0/types.zig");
 const altair = @import("../../consensus/altair/types.zig");
 const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
-const balance = @import("../../consensus/helpers/balance.zig");
+const balance_helper = @import("../../consensus/helpers/balance.zig");
+const committee_helper = @import("../../consensus/helpers/committee.zig");
 
 /// Check if a validator is active at a given epoch.
 /// A validator is active if the current epoch is greater than or equal to the validator's activation epoch and less than the validator's exit epoch.
@@ -192,7 +193,7 @@ pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []cons
 ///     return churn - churn % EFFECTIVE_BALANCE_INCREMENT
 pub fn getBalanceChurnLimit(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.Gwei {
     // Return the churn limit for the current epoch.
-    const total_active_balance = try balance.getTotalActiveBalance(state, allocator);
+    const total_active_balance = try balance_helper.getTotalActiveBalance(state, allocator);
     const churn = @max(configs.ActiveConfig.get().MIN_PER_EPOCH_CHURN_LIMIT_ELECTRA, @divFloor(total_active_balance, configs.ActiveConfig.get().CHURN_LIMIT_QUOTIENT));
     return churn - @mod(churn, preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT);
 }
@@ -305,6 +306,87 @@ pub fn initiateValidatorExit(state: *consensus.BeaconState, index: primitives.Va
         .electra => try initiateValidatorExitElectra(state, index, allocator),
         else => try initiateValidatorExitBellatrix(state, index, allocator),
     }
+}
+
+/// slashValidator slashes a validator and applies the penalty to the state.
+/// @param state The beacon state.
+/// @param slashed_index The index of the validator to slash.
+/// @param whistleblower_index The index of the whistleblower.
+/// @param allocator The allocator.
+/// Spec pseudocode definition:
+/// def slash_validator(state: BeaconState,
+///                     slashed_index: ValidatorIndex,
+///                     whistleblower_index: ValidatorIndex=None) -> None:
+///     """
+///     Slash the validator with index ``slashed_index``.
+///     """
+///     epoch = get_current_epoch(state)
+///     initiate_validator_exit(state, slashed_index)
+///     validator = state.validators[slashed_index]
+///     validator.slashed = True
+///     validator.withdrawable_epoch = max(validator.withdrawable_epoch, Epoch(epoch + EPOCHS_PER_SLASHINGS_VECTOR))
+///     state.slashings[epoch % EPOCHS_PER_SLASHINGS_VECTOR] += validator.effective_balance
+///     # [Modified in Electra:EIP7251]
+///     slashing_penalty = validator.effective_balance // MIN_SLASHING_PENALTY_QUOTIENT_ELECTRA
+///     decrease_balance(state, slashed_index, slashing_penalty)
+///
+///     # Apply proposer and whistleblower rewards
+///     proposer_index = get_beacon_proposer_index(state)
+///     if whistleblower_index is None:
+///          whistleblower_index = proposer_index
+///     whistleblower_reward = Gwei(
+///          validator.effective_balance // WHISTLEBLOWER_REWARD_QUOTIENT_ELECTRA)  # [Modified in Electra:EIP7251]
+///     proposer_reward = Gwei(whistleblower_reward * PROPOSER_WEIGHT // WEIGHT_DENOMINATOR)
+///     increase_balance(state, proposer_index, proposer_reward)
+///     increase_balance(state, whistleblower_index, Gwei(whistleblower_reward - proposer_reward))
+pub fn slashValidator(state: *consensus.BeaconState, slashed_index: primitives.ValidatorIndex, whistleblower_index: ?primitives.ValidatorIndex, allocator: std.mem.Allocator) !void {
+    const epoch = epoch_helper.getCurrentEpoch(state);
+    try initiateValidatorExit(state, slashed_index, allocator);
+    var validator = &state.validators()[slashed_index];
+    validator.slashed = true;
+    validator.withdrawable_epoch = @max(validator.withdrawable_epoch, epoch + preset.ActivePreset.get().EPOCHS_PER_SLASHINGS_VECTOR);
+    state.slashings()[try std.math.mod(primitives.Epoch, epoch, preset.ActivePreset.get().EPOCHS_PER_SLASHINGS_VECTOR)] += validator.effective_balance;
+    const InternalConfig = struct {
+        min_slashing_penalty_quotient: u64,
+        whistleblower_reward_quotient: u64,
+        is_phase0: bool,
+    };
+
+    const config = switch (state.*) {
+        .phase0 => InternalConfig{
+            .min_slashing_penalty_quotient = preset.ActivePreset.get().MIN_SLASHING_PENALTY_QUOTIENT,
+            .whistleblower_reward_quotient = preset.ActivePreset.get().WHISTLEBLOWER_REWARD_QUOTIENT,
+            .is_phase0 = true,
+        },
+        .altair => InternalConfig{
+            .min_slashing_penalty_quotient = preset.ActivePreset.get().MIN_SLASHING_PENALTY_QUOTIENT_ALTAIR,
+            .whistleblower_reward_quotient = preset.ActivePreset.get().WHISTLEBLOWER_REWARD_QUOTIENT,
+            .is_phase0 = false,
+        },
+        .bellatrix, .capella, .deneb => InternalConfig{
+            .min_slashing_penalty_quotient = preset.ActivePreset.get().MIN_SLASHING_PENALTY_QUOTIENT_BELLATRIX,
+            .whistleblower_reward_quotient = preset.ActivePreset.get().WHISTLEBLOWER_REWARD_QUOTIENT,
+            .is_phase0 = false,
+        },
+        .electra => InternalConfig{
+            .min_slashing_penalty_quotient = preset.ActivePreset.get().MIN_SLASHING_PENALTY_QUOTIENT_ELECTRA,
+            .whistleblower_reward_quotient = preset.ActivePreset.get().WHISTLEBLOWER_REWARD_QUOTIENT_ELECTRA,
+            .is_phase0 = false,
+        },
+    };
+
+    balance_helper.decreaseBalance(state, slashed_index, try std.math.divFloor(primitives.Gwei, validator.effective_balance, config.min_slashing_penalty_quotient));
+
+    // Apply proposer and whistleblower rewards
+    const proposer_index = try committee_helper.getBeaconProposerIndex(state, allocator);
+    const whistleblower = whistleblower_index orelse proposer_index;
+    const whistleblower_reward = try std.math.divFloor(primitives.Gwei, validator.effective_balance, config.whistleblower_reward_quotient);
+    const proposer_reward = if (config.is_phase0)
+        try std.math.divFloor(primitives.Gwei, whistleblower_reward, preset.ActivePreset.get().PROPOSER_REWARD_QUOTIENT)
+    else
+        try std.math.divFloor(primitives.Gwei, whistleblower_reward * constants.PROPOSER_WEIGHT, constants.WEIGHT_DENOMINATOR);
+    balance_helper.increaseBalance(state, proposer_index, proposer_reward);
+    balance_helper.increaseBalance(state, whistleblower, whistleblower_reward - proposer_reward);
 }
 
 test "test getBalanceChurnLimit" {

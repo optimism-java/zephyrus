@@ -446,6 +446,12 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    pub fn slashings(self: *const BeaconState) []primitives.Gwei {
+        return switch (self.*) {
+            inline else => |state| state.slashings,
+        };
+    }
+
     pub fn balances(self: *const BeaconState) []primitives.Gwei {
         return switch (self.*) {
             inline else => |state| state.balances,
