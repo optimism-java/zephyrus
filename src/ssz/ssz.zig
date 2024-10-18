@@ -981,15 +981,15 @@ pub fn hashTreeRoot(value: anytype, out: *[32]u8, allocator: Allocator) !void {
             }
         },
         .pointer => {
-            switch (type_info.Pointer.size) {
+            switch (type_info.pointer.size) {
                 .One => hashTreeRoot(value.*, out, allocator),
                 .Slice => {
-                    switch (@typeInfo(type_info.Pointer.child)) {
+                    switch (@typeInfo(type_info.pointer.child)) {
                         .int => {
                             var list = ArrayList(u8).init(allocator);
                             defer list.deinit();
                             const chunks = try pack(value, &list);
-                            merkleize(chunks, null, out);
+                            try merkleize(chunks, null, out);
                         },
                         else => return error.UnSupportedPointerType,
                     }

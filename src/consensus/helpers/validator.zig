@@ -832,3 +832,84 @@ test "test computeProposerIndex" {
     const proposer_index = try computeProposerIndex(&state, &validator_index, .{1} ** 32);
     try std.testing.expectEqual(0, proposer_index);
 }
+
+test "test slashValidator" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    const finalized_checkpoint = consensus.Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 100000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+
+    const validator2 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 100000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+    try validators.append(validator1);
+    try validators.append(validator2);
+
+    var slashings = [_]primitives.Gwei{1000000000000000} ** 4;
+    var balances = [_]primitives.Gwei{10000000000000000000} ** 4;
+
+    var randao_mixes = try std.ArrayList(primitives.Bytes32).initCapacity(std.testing.allocator, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
+    defer randao_mixes.deinit();
+    for (0..preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR) |slot_index| {
+        try randao_mixes.append(.{@as(u8, @intCast(slot_index))} ** 32);
+    }
+    var state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 0,
+            .fork = undefined,
+            .block_roots = undefined,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = &balances,
+            .randao_mixes = randao_mixes.items,
+            .slashings = &slashings,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    try slashValidator(&state, 0, 1, std.testing.allocator);
+    try std.testing.expectEqual(true, state.altair.validators[0].slashed);
+    try std.testing.expectEqual(false, state.altair.validators[1].slashed);
+    try std.testing.expectEqual(64, state.altair.validators[0].withdrawable_epoch);
+    try std.testing.expectEqual(20, state.altair.validators[1].withdrawable_epoch);
+    try std.testing.expectEqual(10, state.altair.validators[0].exit_epoch);
+    try std.testing.expectEqual(20, state.altair.validators[1].exit_epoch);
+}

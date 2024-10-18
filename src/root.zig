@@ -24,6 +24,7 @@ pub const balance_helper = @import("consensus/helpers/balance.zig");
 pub const ssz = @import("./ssz/ssz.zig");
 pub const snappy = @import("./snappy/snappy.zig");
 pub const merkle = @import("consensus/helpers/merkle.zig");
+pub const genesis_helper = @import("consensus/helpers/genesis.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

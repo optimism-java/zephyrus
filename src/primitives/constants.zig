@@ -41,3 +41,4 @@ pub const MAX_BLOBS_PER_BLOCK: usize = 6;
 
 pub const PROPOSER_WEIGHT: u64 = 8;
 pub const WEIGHT_DENOMINATOR: u64 = 64;
+pub const UNSET_DEPOSIT_REQUESTS_START_INDEX: u64 = std.math.maxInt(u64);

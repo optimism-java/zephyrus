@@ -265,6 +265,87 @@ pub const ExecutionPayloadHeader = union(primitives.ForkType) {
     capella: capella.ExecutionPayloadHeader,
     deneb: deneb.ExecutionPayloadHeader,
     electra: electra.ExecutionPayloadHeader,
+
+    pub fn default(fork_type: primitives.ForkType) ExecutionPayloadHeader {
+        return switch (fork_type) {
+            primitives.ForkType.phase0 => .{ .phase0 = NonExistType{} },
+            primitives.ForkType.altair => .{ .altair = NonExistType{} },
+            primitives.ForkType.bellatrix => .{ .bellatrix = bellatrix.ExecutionPayloadHeader{
+                .parent_hash = undefined,
+                .fee_recipient = undefined,
+                .state_root = undefined,
+                .receipts_root = undefined,
+                .logs_bloom = undefined,
+                .prev_randao = undefined,
+                .block_number = 0,
+                .gas_used = 0,
+                .gas_limit = 0,
+                .timestamp = 0,
+                .extra_data = undefined,
+                .base_fee_per_gas = 0,
+                .block_hash = undefined,
+                .transactions_root = undefined,
+            } },
+            primitives.ForkType.capella => .{ .capella = capella.ExecutionPayloadHeader{
+                .parent_hash = undefined,
+                .fee_recipient = undefined,
+                .state_root = undefined,
+                .receipts_root = undefined,
+                .logs_bloom = undefined,
+                .prev_randao = undefined,
+                .block_number = 0,
+                .gas_used = 0,
+                .gas_limit = 0,
+                .timestamp = 0,
+                .extra_data = undefined,
+                .base_fee_per_gas = 0,
+                .block_hash = undefined,
+                .transactions_root = undefined,
+                .withdrawals_root = undefined,
+            } },
+            primitives.ForkType.deneb => .{ .deneb = deneb.ExecutionPayloadHeader{
+                .parent_hash = undefined,
+                .fee_recipient = undefined,
+                .state_root = undefined,
+                .receipts_root = undefined,
+                .logs_bloom = undefined,
+                .prev_randao = undefined,
+                .block_number = 0,
+                .gas_used = 0,
+                .gas_limit = 0,
+                .timestamp = 0,
+                .extra_data = undefined,
+                .base_fee_per_gas = 0,
+                .block_hash = undefined,
+                .transactions_root = undefined,
+                .withdrawals_root = undefined,
+                .blob_gas_used = 0,
+                .excess_blob_gas = 0,
+            } },
+            primitives.ForkType.electra => .{ .electra = electra.ExecutionPayloadHeader{
+                .parent_hash = undefined,
+                .fee_recipient = undefined,
+                .state_root = undefined,
+                .receipts_root = undefined,
+                .logs_bloom = undefined,
+                .prev_randao = undefined,
+                .block_number = 0,
+                .gas_used = 0,
+                .gas_limit = 0,
+                .timestamp = 0,
+                .extra_data = undefined,
+                .base_fee_per_gas = 0,
+                .block_hash = undefined,
+                .transactions_root = undefined,
+                .withdrawals_root = undefined,
+                .blob_gas_used = 0,
+                .excess_blob_gas = 0,
+                .deposit_requests_root = undefined,
+                .withdrawal_requests_root = undefined,
+                .consolidation_requests_root = undefined,
+            } },
+        };
+    }
 };
 
 pub const ExecutionPayload = union(primitives.ForkType) {
@@ -445,6 +526,12 @@ pub const BeaconState = union(primitives.ForkType) {
     capella: capella.BeaconState,
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
+
+    pub fn genesisTime(self: *const BeaconState) u64 {
+        return switch (self.*) {
+            inline else => |state| state.genesis_time,
+        };
+    }
 
     pub fn slashings(self: *const BeaconState) []primitives.Gwei {
         return switch (self.*) {
