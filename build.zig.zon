@@ -26,6 +26,16 @@
     //     .url = "https://github.com/Raiden1411/zabi/archive/79c77aa4a39d41ed50033fd922f4d37c0f0638bb.tar.gz",
     //     .hash = "122095aaf2d09e3286bf8b00b773b65c1632639de6c5005de881754df7c04efc7e98",
     // } },
+    .dependencies = .{
+        .mcl = .{
+            .url = "https://github.com/herumi/mcl/archive/v2.10.tar.gz",
+            .hash = "122001517c52ec64dc9b590c56793097e32903d0ffca10d46f1143c83b18da30e287",
+        },
+        .bls = .{
+            .url = "https://github.com/herumi/bls/archive/v1.94.tar.gz",
+            .hash = "1220f1431968b74c9a1e3241c4c2e5d34faa57ee8d31e8c7b8a8ae40c4c000d98a26",
+        },
+    },
     .paths = .{
         "build.zig",
         "build.zig.zon",
