@@ -15,53 +15,53 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const dep_mcl_c = b.dependency("mcl", .{});
-
-    const mcl = b.addStaticLibrary(.{
-        .name = "mcl",
-        .target = target,
-        .optimize = optimize,
-    });
-    mcl.addIncludePath(dep_mcl_c.path("src"));
-    mcl.addIncludePath(dep_mcl_c.path("include"));
-    mcl.addIncludePath(dep_mcl_c.path("include/mcl"));
-
-    // const mcl_flags = [_][]const u8{ "-g3", "-Wall", "-Wextra", "-Wformat=2", "-Wcast-qual", "-Wcast-align", "-Wwrite-strings", "-Wfloat-equal", "-Wpointer-arith", "-Wundef", "-m64", "-fomit-frame-pointer", "-DNDEBUG", "-fno-stack-protector", "-O3", "-fpic" };
-
-    mcl.addCSourceFiles(.{ .root = dep_mcl_c.path(""), .files = &.{ "src/bn_c256.cpp", "src/bn_c384.cpp","src/bn_c384_256.cpp","src/bn_c512.cpp","src/bint64.ll" } });
-    mcl.installHeadersDirectory(dep_mcl_c.path("src"), "", .{});
-    mcl.installHeadersDirectory(dep_mcl_c.path("include"), "", .{});
-    mcl.installHeadersDirectory(dep_mcl_c.path("include/mcl"), "", .{});
-    mcl.linkLibC();
-    mcl.linkLibCpp();
-
-    b.installArtifact(mcl);
-
-    const dep_bls_c = b.dependency("bls", .{});
-
-    const bls = b.addStaticLibrary(.{
-        .name = "bls",
-        .target = target,
-        .optimize = optimize,
-    });
-    bls.addIncludePath(dep_bls_c.path("src"));
-    bls.addIncludePath(dep_bls_c.path("include"));
-    bls.addIncludePath(dep_mcl_c.path("src"));
-    bls.addIncludePath(dep_mcl_c.path("include"));
-    bls.addIncludePath(dep_mcl_c.path("include/mcl"));
-
-    const bls_flags = [_][]const u8{ "-g3", "-Wall", "-Wextra", "-Wformat=2", "-Wcast-qual", "-Wcast-align", "-Wwrite-strings", "-Wfloat-equal", "-Wpointer-arith", "-Wundef", "-m64", "-fomit-frame-pointer", "-DNDEBUG", "-fno-stack-protector", "-O3", "-fpic", "-DBLS_ETH" };
-
-    bls.addCSourceFiles(.{ .root = dep_bls_c.path(""), .flags = &bls_flags, .files = &.{ "src/bls_c256.cpp", "src/bls_c384.cpp", "src/bls_c384_256.cpp", "src/bls_c512.cpp", "src/mylib.c" } });
-    bls.installHeadersDirectory(dep_mcl_c.path("src"), "", .{});
-    bls.installHeadersDirectory(dep_mcl_c.path("include"), "", .{});
-    bls.installHeadersDirectory(dep_mcl_c.path("include/mcl"), "", .{});
-    bls.installHeadersDirectory(dep_bls_c.path("src"), "", .{});
-    bls.installHeadersDirectory(dep_bls_c.path("include"), "", .{});
-    bls.linkLibC();
-    bls.linkLibCpp();
-
-    b.installArtifact(bls);
+    // const dep_mcl_c = b.dependency("mcl", .{});
+    //
+    // const mcl = b.addStaticLibrary(.{
+    //     .name = "mcl",
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
+    // mcl.addIncludePath(dep_mcl_c.path("src"));
+    // mcl.addIncludePath(dep_mcl_c.path("include"));
+    // mcl.addIncludePath(dep_mcl_c.path("include/mcl"));
+    //
+    // // const mcl_flags = [_][]const u8{ "-g3", "-Wall", "-Wextra", "-Wformat=2", "-Wcast-qual", "-Wcast-align", "-Wwrite-strings", "-Wfloat-equal", "-Wpointer-arith", "-Wundef", "-m64", "-fomit-frame-pointer", "-DNDEBUG", "-fno-stack-protector", "-O3", "-fpic" };
+    //
+    // mcl.addCSourceFiles(.{ .root = dep_mcl_c.path(""), .files = &.{ "src/bn_c256.cpp", "src/bn_c384.cpp","src/bn_c384_256.cpp","src/bn_c512.cpp","src/bint64.ll" } });
+    // mcl.installHeadersDirectory(dep_mcl_c.path("src"), "", .{});
+    // mcl.installHeadersDirectory(dep_mcl_c.path("include"), "", .{});
+    // mcl.installHeadersDirectory(dep_mcl_c.path("include/mcl"), "", .{});
+    // mcl.linkLibC();
+    // mcl.linkLibCpp();
+    //
+    // b.installArtifact(mcl);
+    //
+    // const dep_bls_c = b.dependency("bls", .{});
+    //
+    // const bls = b.addStaticLibrary(.{
+    //     .name = "bls",
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
+    // bls.addIncludePath(dep_bls_c.path("src"));
+    // bls.addIncludePath(dep_bls_c.path("include"));
+    // bls.addIncludePath(dep_mcl_c.path("src"));
+    // bls.addIncludePath(dep_mcl_c.path("include"));
+    // bls.addIncludePath(dep_mcl_c.path("include/mcl"));
+    //
+    // const bls_flags = [_][]const u8{ "-g3", "-Wall", "-Wextra", "-Wformat=2", "-Wcast-qual", "-Wcast-align", "-Wwrite-strings", "-Wfloat-equal", "-Wpointer-arith", "-Wundef", "-m64", "-fomit-frame-pointer", "-DNDEBUG", "-fno-stack-protector", "-O3", "-fpic", "-DBLS_ETH" };
+    //
+    // bls.addCSourceFiles(.{ .root = dep_bls_c.path(""), .flags = &bls_flags, .files = &.{ "src/bls_c256.cpp", "src/bls_c384.cpp", "src/bls_c384_256.cpp", "src/bls_c512.cpp", "src/mylib.c" } });
+    // bls.installHeadersDirectory(dep_mcl_c.path("src"), "", .{});
+    // bls.installHeadersDirectory(dep_mcl_c.path("include"), "", .{});
+    // bls.installHeadersDirectory(dep_mcl_c.path("include/mcl"), "", .{});
+    // bls.installHeadersDirectory(dep_bls_c.path("src"), "", .{});
+    // bls.installHeadersDirectory(dep_bls_c.path("include"), "", .{});
+    // bls.linkLibC();
+    // bls.linkLibCpp();
+    //
+    // b.installArtifact(bls);
 
     const lib = b.addStaticLibrary(.{
         .name = "zephyrus",
@@ -130,15 +130,23 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    lib_unit_tests.addIncludePath(dep_mcl_c.path("src"));
-    lib_unit_tests.addIncludePath(dep_mcl_c.path("include"));
-    lib_unit_tests.addIncludePath(dep_mcl_c.path("include/mcl"));
-    lib_unit_tests.addIncludePath(dep_bls_c.path("src"));
-    lib_unit_tests.addIncludePath(dep_bls_c.path("include"));
-    lib_unit_tests.linkLibrary(mcl);
-    lib_unit_tests.linkLibrary(bls);
+    // lib_unit_tests.installHeadersDirectory(b.path("bls/include/"), "", .{});
+    // lib_unit_tests.installHeadersDirectory(b.path("bls/mcl/include/"), "", .{});
+    lib_unit_tests.addIncludePath(b.path("bls/include/"));
+    lib_unit_tests.addIncludePath(b.path("bls/mcl/include/"));
+    lib_unit_tests.addObjectFile(b.path("bls/mcl/lib/libmcl.a"));
+    lib_unit_tests.addObjectFile(b.path("bls/lib/libbls384_256.a"));
     lib_unit_tests.linkLibC();
     lib_unit_tests.linkLibCpp();
+    // lib_unit_tests.addIncludePath(dep_mcl_c.path("src"));
+    // lib_unit_tests.addIncludePath(dep_mcl_c.path("include"));
+    // lib_unit_tests.addIncludePath(dep_mcl_c.path("include/mcl"));
+    // lib_unit_tests.addIncludePath(dep_bls_c.path("src"));
+    // lib_unit_tests.addIncludePath(dep_bls_c.path("include"));
+    // lib_unit_tests.linkLibrary(mcl);
+    // lib_unit_tests.linkLibrary(bls);
+    // lib_unit_tests.linkLibC();
+    // lib_unit_tests.linkLibCpp();
 
     // lib_unit_tests.root_module.addImport("zabi", ssz_dep.module("zabi"));
 
@@ -150,15 +158,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    exe_unit_tests.addIncludePath(dep_mcl_c.path("src"));
-    exe_unit_tests.addIncludePath(dep_mcl_c.path("include"));
-    exe_unit_tests.addIncludePath(dep_mcl_c.path("include/mcl"));
-    exe_unit_tests.addIncludePath(dep_bls_c.path("src"));
-    exe_unit_tests.addIncludePath(dep_bls_c.path("include"));
-    exe_unit_tests.linkLibrary(mcl);
-    exe_unit_tests.linkLibrary(bls);
-    exe_unit_tests.linkLibC();
-    exe_unit_tests.linkLibCpp();
+    // exe_unit_tests.addIncludePath(dep_mcl_c.path("src"));
+    // exe_unit_tests.addIncludePath(dep_mcl_c.path("include"));
+    // exe_unit_tests.addIncludePath(dep_mcl_c.path("include/mcl"));
+    // exe_unit_tests.addIncludePath(dep_bls_c.path("src"));
+    // exe_unit_tests.addIncludePath(dep_bls_c.path("include"));
+    // exe_unit_tests.linkLibrary(mcl);
+    // exe_unit_tests.linkLibrary(bls);
+    // exe_unit_tests.linkLibC();
+    // exe_unit_tests.linkLibCpp();
 
     const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
 
