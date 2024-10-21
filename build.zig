@@ -142,14 +142,17 @@ pub fn build(b: *std.Build) void {
     // lib_unit_tests.linkLibC();
     // lib_unit_tests.linkLibCpp();
 
-    lib_unit_tests.addIncludePath(b.path("bls/include/"));
-    lib_unit_tests.addIncludePath(b.path("bls/mcl/include/"));
-    lib_unit_tests.addIncludePath(b.path("bls/mcl/test/"));
-    lib_unit_tests.addIncludePath(b.path("bls/test/"));
+    // lib_unit_tests.addIncludePath(b.path("bls-eth-go-binary/bls/include/bls/"));
+    lib_unit_tests.addIncludePath(b.path("bls-eth-go-binary/bls/include/"));
+    // lib_unit_tests.addIncludePath(b.path("bls/mcl/include/"));
+    // lib_unit_tests.addIncludePath(b.path("bls/mcl/test/"));
+    // lib_unit_tests.addIncludePath(b.path("bls/test/"));
+
     // lib_unit_tests.addLibraryPath(b.path("bls/mcl/lib/"));
     // lib_unit_tests.addLibraryPath(b.path("bls/lib/"));
-    lib_unit_tests.addObjectFile(b.path("bls/lib/libbls384_256.a"));
-    lib_unit_tests.addObjectFile(b.path("bls/mcl/lib/libmcl.a"));
+    lib_unit_tests.addObjectFile(b.path("bls-eth-go-binary/bls/lib/linux/amd64/libbls384_256.a"));
+    // lib_unit_tests.addObjectFile(b.path("bls-eth-go-binary/bls/lib/darwin/amd64/libmcl.a"));
+    // lib_unit_tests.addObjectFile(b.path("bls/mcl/lib/libmcl.a"));
     lib_unit_tests.linkLibC();
     lib_unit_tests.linkLibCpp();
 
