@@ -68,86 +68,38 @@ pub fn initializeBeaconStateFromEth1(
 
     const beacon_block_body = switch (fork_type) {
         .phase0 => consensus.BeaconBlockBody{
-            .phase0 = phase0.BeaconBlockBody{
-                .randao_reveal = undefined,
-                .eth1_data = undefined,
-                .graffiti = undefined,
-                .proposer_slashings = undefined,
-                .attester_slashings = undefined,
-                .attestations = undefined,
-                .deposits = undefined,
-                .voluntary_exits = undefined,
-            },
+            .phase0 = std.mem.zeroes(phase0.BeaconBlockBody),
         },
         .altair => consensus.BeaconBlockBody{
-            .altair = altair.BeaconBlockBody{
-                .randao_reveal = undefined,
-                .eth1_data = undefined,
-                .graffiti = undefined,
-                .proposer_slashings = undefined,
-                .attester_slashings = undefined,
-                .attestations = undefined,
-                .deposits = undefined,
-                .voluntary_exits = undefined,
+            .altair = std.mem.zeroInit(altair.BeaconBlockBody, .{
                 .sync_aggregate = undefined,
-            },
+            }),
         },
         .bellatrix => consensus.BeaconBlockBody{
-            .bellatrix = bellatrix.BeaconBlockBody{
-                .randao_reveal = undefined,
-                .eth1_data = undefined,
-                .graffiti = undefined,
-                .proposer_slashings = undefined,
-                .attester_slashings = undefined,
-                .attestations = undefined,
-                .deposits = undefined,
-                .voluntary_exits = undefined,
+            .bellatrix = std.mem.zeroInit(bellatrix.BeaconBlockBody, .{
                 .sync_aggregate = undefined,
                 .execution_payload = undefined,
-            },
+            }),
         },
         .capella => consensus.BeaconBlockBody{
-            .capella = capella.BeaconBlockBody{
-                .randao_reveal = undefined,
-                .eth1_data = undefined,
-                .graffiti = undefined,
-                .proposer_slashings = undefined,
-                .attester_slashings = undefined,
-                .attestations = undefined,
-                .deposits = undefined,
-                .voluntary_exits = undefined,
+            .capella = std.mem.zeroInit(capella.BeaconBlockBody, .{
                 .sync_aggregate = undefined,
                 .execution_payload = undefined,
-                .bls_to_execution_changes = undefined,
-            },
+            }),
         },
         .deneb, .electra => consensus.BeaconBlockBody{
-            .deneb = deneb.BeaconBlockBody{
-                .randao_reveal = undefined,
-                .eth1_data = undefined,
-                .graffiti = undefined,
-                .proposer_slashings = undefined,
-                .attester_slashings = undefined,
-                .attestations = undefined,
-                .deposits = undefined,
-                .voluntary_exits = undefined,
+            .deneb = std.mem.zeroInit(deneb.BeaconBlockBody, .{
                 .sync_aggregate = undefined,
                 .execution_payload = undefined,
-                .bls_to_execution_changes = undefined,
-                .blob_kzg_commitments = undefined,
-            },
+            }),
         },
     };
 
     var body_root: primitives.Root = undefined;
     try ssz.hashTreeRoot(beacon_block_body, &body_root, allocator);
 
-    var randao_mixes = try std.ArrayList(primitives.Bytes32).initCapacity(allocator, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
-    defer randao_mixes.deinit();
-    for (0..preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR) |_| {
-        try randao_mixes.append(eth1_block_hash);
-    }
-    const randao_mixes_slice = try randao_mixes.toOwnedSlice();
+    const randao_mixes_slice = try allocator.alloc(primitives.Bytes32, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
+    @memset(randao_mixes_slice, eth1_block_hash);
     const state = switch (fork_type) {
         .phase0 => consensus.BeaconState{
             .phase0 = phase0.BeaconState{
