@@ -11,9 +11,10 @@ const capella = @import("../../consensus/capella/types.zig");
 const electra = @import("../../consensus/electra/types.zig");
 const deneb = @import("../../consensus/deneb/types.zig");
 const validator_helper = @import("../../consensus/helpers/validator.zig");
+const balance_helper = @import("../../consensus/helpers/balance.zig");
 const ssz = @import("../../ssz/ssz.zig");
 
-pub fn isValidGenesisState(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !bool {
+pub fn isValidGenesisState(state: *consensus.BeaconState, allocator: std.mem.Allocator) !bool {
     if (state.genesisTime() < configs.ActiveConfig.get().MIN_GENESIS_TIME) {
         return false;
     }
@@ -100,9 +101,10 @@ pub fn initializeBeaconStateFromEth1(
 
     const randao_mixes_slice = try allocator.alloc(primitives.Bytes32, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
     @memset(randao_mixes_slice, eth1_block_hash);
-    const state = switch (fork_type) {
+
+    var state = switch (fork_type) {
         .phase0 => consensus.BeaconState{
-            .phase0 = phase0.BeaconState{
+            .phase0 = std.mem.zeroInit(phase0.BeaconState, .{
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
@@ -110,34 +112,14 @@ pub fn initializeBeaconStateFromEth1(
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
-                .latest_block_header = consensus.BeaconBlockHeader{
+                .latest_block_header = std.mem.zeroInit(consensus.BeaconBlockHeader, .{
                     .body_root = body_root,
-                    .parent_root = undefined,
-                    .state_root = undefined,
-                    .proposer_index = 0,
-                    .slot = 0,
-                },
+                }),
                 .randao_mixes = randao_mixes_slice,
-                .genesis_validators_root = undefined,
-                .slot = 0,
-                .block_roots = undefined,
-                .state_roots = undefined,
-                .historical_roots = undefined,
-                .eth1_data_votes = undefined,
-                .eth1_deposit_index = undefined,
-                .validators = undefined,
-                .balances = undefined,
-                .slashings = undefined,
-                .previous_epoch_attestations = undefined,
-                .current_epoch_attestations = undefined,
-                .justification_bits = undefined,
-                .previous_justified_checkpoint = undefined,
-                .current_justified_checkpoint = undefined,
-                .finalized_checkpoint = undefined,
-            },
+            }),
         },
         .altair => consensus.BeaconState{
-            .altair = altair.BeaconState{
+            .altair = std.mem.zeroInit(altair.BeaconState, .{
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
@@ -145,37 +127,16 @@ pub fn initializeBeaconStateFromEth1(
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
-                .latest_block_header = consensus.BeaconBlockHeader{
+                .latest_block_header = std.mem.zeroInit(consensus.BeaconBlockHeader, .{
                     .body_root = body_root,
-                    .parent_root = undefined,
-                    .state_root = undefined,
-                    .proposer_index = 0,
-                    .slot = 0,
-                },
+                }),
                 .randao_mixes = randao_mixes_slice,
-                .genesis_validators_root = undefined,
-                .slot = 0,
-                .block_roots = undefined,
-                .state_roots = undefined,
-                .historical_roots = undefined,
-                .eth1_data_votes = undefined,
-                .eth1_deposit_index = undefined,
-                .validators = undefined,
-                .balances = undefined,
-                .slashings = undefined,
-                .previous_epoch_attestations = undefined,
-                .current_epoch_attestations = undefined,
-                .justification_bits = undefined,
-                .previous_justified_checkpoint = undefined,
-                .current_justified_checkpoint = undefined,
-                .finalized_checkpoint = undefined,
-                .inactivity_scores = undefined,
                 .current_sync_committee = undefined,
                 .next_sync_committee = undefined,
-            },
+            }),
         },
         .bellatrix => consensus.BeaconState{
-            .bellatrix = bellatrix.BeaconState{
+            .bellatrix = std.mem.zeroInit(bellatrix.BeaconState, .{
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
@@ -183,38 +144,17 @@ pub fn initializeBeaconStateFromEth1(
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
-                .latest_block_header = consensus.BeaconBlockHeader{
+                .latest_block_header = std.mem.zeroInit(consensus.BeaconBlockHeader, .{
                     .body_root = body_root,
-                    .parent_root = undefined,
-                    .state_root = undefined,
-                    .proposer_index = 0,
-                    .slot = 0,
-                },
+                }),
                 .randao_mixes = randao_mixes_slice,
-                .genesis_validators_root = undefined,
-                .slot = 0,
-                .block_roots = undefined,
-                .state_roots = undefined,
-                .historical_roots = undefined,
-                .eth1_data_votes = undefined,
-                .eth1_deposit_index = undefined,
-                .validators = undefined,
-                .balances = undefined,
-                .slashings = undefined,
-                .previous_epoch_attestations = undefined,
-                .current_epoch_attestations = undefined,
-                .justification_bits = undefined,
-                .previous_justified_checkpoint = undefined,
-                .current_justified_checkpoint = undefined,
-                .finalized_checkpoint = undefined,
-                .inactivity_scores = undefined,
                 .current_sync_committee = undefined,
                 .next_sync_committee = undefined,
                 .latest_execution_payload_header = undefined,
-            },
+            }),
         },
         .capella => consensus.BeaconState{
-            .capella = capella.BeaconState{
+            .capella = std.mem.zeroInit(capella.BeaconState, .{
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
@@ -222,39 +162,17 @@ pub fn initializeBeaconStateFromEth1(
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
-                .latest_block_header = consensus.BeaconBlockHeader{
+                .latest_block_header = std.mem.zeroInit(consensus.BeaconBlockHeader, .{
                     .body_root = body_root,
-                    .parent_root = undefined,
-                    .state_root = undefined,
-                    .proposer_index = 0,
-                    .slot = 0,
-                },
+                }),
                 .randao_mixes = randao_mixes_slice,
-                .genesis_validators_root = undefined,
-                .slot = 0,
-                .block_roots = undefined,
-                .state_roots = undefined,
-                .historical_roots = undefined,
-                .eth1_data_votes = undefined,
-                .eth1_deposit_index = undefined,
-                .validators = undefined,
-                .balances = undefined,
-                .slashings = undefined,
-                .previous_epoch_attestations = undefined,
-                .current_epoch_attestations = undefined,
-                .justification_bits = undefined,
-                .previous_justified_checkpoint = undefined,
-                .current_justified_checkpoint = undefined,
-                .finalized_checkpoint = undefined,
-                .inactivity_scores = undefined,
                 .current_sync_committee = undefined,
                 .next_sync_committee = undefined,
                 .latest_execution_payload_header = undefined,
-                .historical_summaries = undefined,
-            },
+            }),
         },
         .deneb => consensus.BeaconState{
-            .deneb = capella.BeaconState{
+            .deneb = std.mem.zeroInit(capella.BeaconState, .{
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
@@ -262,39 +180,17 @@ pub fn initializeBeaconStateFromEth1(
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
-                .latest_block_header = consensus.BeaconBlockHeader{
+                .latest_block_header = std.mem.zeroInit(consensus.BeaconBlockHeader, .{
                     .body_root = body_root,
-                    .parent_root = undefined,
-                    .state_root = undefined,
-                    .proposer_index = 0,
-                    .slot = 0,
-                },
+                }),
                 .randao_mixes = randao_mixes_slice,
-                .genesis_validators_root = undefined,
-                .slot = 0,
-                .block_roots = undefined,
-                .state_roots = undefined,
-                .historical_roots = undefined,
-                .eth1_data_votes = undefined,
-                .eth1_deposit_index = undefined,
-                .validators = undefined,
-                .balances = undefined,
-                .slashings = undefined,
-                .previous_epoch_attestations = undefined,
-                .current_epoch_attestations = undefined,
-                .justification_bits = undefined,
-                .previous_justified_checkpoint = undefined,
-                .current_justified_checkpoint = undefined,
-                .finalized_checkpoint = undefined,
-                .inactivity_scores = undefined,
                 .current_sync_committee = undefined,
                 .next_sync_committee = undefined,
                 .latest_execution_payload_header = undefined,
-                .historical_summaries = undefined,
-            },
+            }),
         },
         .electra => consensus.BeaconState{
-            .electra = electra.BeaconState{
+            .electra = std.mem.zeroInit(electra.BeaconState, .{
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
@@ -302,79 +198,59 @@ pub fn initializeBeaconStateFromEth1(
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
-                .latest_block_header = consensus.BeaconBlockHeader{
+                .latest_block_header = std.mem.zeroInit(consensus.BeaconBlockHeader, .{
                     .body_root = body_root,
-                    .parent_root = undefined,
-                    .state_root = undefined,
-                    .proposer_index = 0,
-                    .slot = 0,
-                },
+                }),
                 .randao_mixes = randao_mixes_slice,
-                .genesis_validators_root = undefined,
-                .slot = 0,
-                .block_roots = undefined,
-                .state_roots = undefined,
-                .historical_roots = undefined,
-                .eth1_data_votes = undefined,
-                .eth1_deposit_index = undefined,
-                .validators = undefined,
-                .balances = undefined,
-                .slashings = undefined,
-                .previous_epoch_attestations = undefined,
-                .current_epoch_attestations = undefined,
-                .justification_bits = undefined,
-                .previous_justified_checkpoint = undefined,
-                .current_justified_checkpoint = undefined,
-                .finalized_checkpoint = undefined,
-                .inactivity_scores = undefined,
                 .current_sync_committee = undefined,
                 .next_sync_committee = undefined,
                 .latest_execution_payload_header = undefined,
-                .historical_summaries = undefined,
-                .pending_balance_deposits = undefined,
-                .pending_partial_withdrawals = undefined,
-                .pending_consolidations = undefined,
                 .deposit_requests_start_index = constants.UNSET_DEPOSIT_REQUESTS_START_INDEX,
-            },
+            }),
         },
     };
 
-    //
-    // // Process deposits
-    // var leaves = try std.ArrayList(DepositData).initCapacity(std.heap.page_allocator, deposits.len);
-    // defer leaves.deinit();
-    //
-    // for (deposits, 0..) |deposit, index| {
-    //     try leaves.append(deposit.data);
-    //     var deposit_data_list = try std.ArrayList(DepositData).initCapacity(std.heap.page_allocator, DEPOSIT_CONTRACT_TREE_DEPTH);
-    //     defer deposit_data_list.deinit();
-    //     try deposit_data_list.appendSlice(leaves.items[0..index + 1]);
-    //     state.eth1_data.deposit_root = try hash_tree_root(deposit_data_list.items);
-    //     try process_deposit(&state, deposit);
-    // }
-    //
-    // // Process deposit balance updates
-    // for (state.pending_balance_deposits) |deposit| {
-    //     try increase_balance(&state, deposit.index, deposit.amount);
-    // }
-    // state.pending_balance_deposits.clearRetainingCapacity();
-    //
-    // // Process activations
-    // for (state.validators) |*validator, index| {
-    //     const balance = state.balances[index];
-    //     validator.effective_balance = @min(
-    //         balance - balance % EFFECTIVE_BALANCE_INCREMENT,
-    //         try get_max_effective_balance(validator),
-    //     );
-    //     if (validator.effective_balance >= MIN_ACTIVATION_BALANCE) {
-    //         validator.activation_eligibility_epoch = GENESIS_EPOCH;
-    //         validator.activation_epoch = GENESIS_EPOCH;
-    //     }
-    // }
-    //
-    // // Set genesis validators root for domain separation and chain versioning
-    // state.genesis_validators_root = try hash_tree_root(state.validators);
-    //
+    // Process deposits
+    var leaves = try std.ArrayList(consensus.DepositData).initCapacity(allocator, deposits.len);
+    defer leaves.deinit();
+
+    for (deposits, 0..) |deposit, index| {
+        try leaves.append(deposit.data);
+        var deposit_data_list = try std.ArrayList(consensus.DepositData).initCapacity(allocator, index + 1);
+        defer deposit_data_list.deinit();
+        try deposit_data_list.appendSlice(leaves.items[0 .. index + 1]);
+        try ssz.hashTreeRoot(deposit_data_list.items, &state.eth1Data().deposit_root, allocator);
+        processDeposit(&state, &deposit);
+    }
+
+    // Process deposit balance updates
+    if (state == .electra) {
+        for (state.electra.pending_balance_deposits) |deposit| {
+            balance_helper.increaseBalance(&state, deposit.electra.index, deposit.electra.amount);
+        }
+        state.electra.pending_balance_deposits.len = 0;
+    }
+
+    // Process activations
+    for (state.validators(), 0..) |*validator, index| {
+        const balance = state.balances()[index];
+        const max_balance = if (state == .electra)
+            preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE_ELECTRA
+        else
+            preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE;
+        validator.effective_balance = @min(
+            balance - @mod(balance, preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT),
+            max_balance,
+        );
+        if (validator.effective_balance >= preset.ActivePreset.get().MIN_ACTIVATION_BALANCE) {
+            validator.activation_eligibility_epoch = constants.GENESIS_EPOCH;
+            validator.activation_epoch = constants.GENESIS_EPOCH;
+        }
+    }
+
+    // Set genesis validators root for domain separation and chain versioning
+    try ssz.hashTreeRoot(state.validators(), state.genesisValidatorsRootRef(), allocator);
+
     // // Fill in sync committees
     // state.current_sync_committee = try get_next_sync_committee(&state);
     // state.next_sync_committee = try get_next_sync_committee(&state);
@@ -383,4 +259,10 @@ pub fn initializeBeaconStateFromEth1(
     // state.latest_execution_payload_header = execution_payload_header;
 
     return state;
+}
+
+fn processDeposit(state: *consensus.BeaconState, deposit: *const consensus.Deposit) void {
+    const a = state.eth1Data();
+    std.debug.print("Deposit data: {}\n", .{deposit.data});
+    std.debug.print("State data: {}\n", .{a});
 }

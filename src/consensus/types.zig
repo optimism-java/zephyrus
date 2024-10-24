@@ -527,6 +527,16 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    pub fn forkedBeaconState(self: *BeaconState) *BeaconState {
+        return self;
+    }
+
+    pub fn eth1Data(self: *BeaconState) *Eth1Data {
+        return switch (self.*) {
+            inline else => |*state| &state.eth1_data,
+        };
+    }
+
     pub fn genesisTime(self: *const BeaconState) u64 {
         return switch (self.*) {
             inline else => |state| state.genesis_time,
@@ -548,6 +558,12 @@ pub const BeaconState = union(primitives.ForkType) {
     pub fn genesisValidatorsRoot(self: *const BeaconState) primitives.Root {
         return switch (self.*) {
             inline else => |state| state.genesis_validators_root,
+        };
+    }
+
+    pub fn genesisValidatorsRootRef(self: *BeaconState) *primitives.Root {
+        return switch (self.*) {
+            inline else => |*state| &state.genesis_validators_root,
         };
     }
 

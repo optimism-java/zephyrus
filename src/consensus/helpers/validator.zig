@@ -389,6 +389,15 @@ pub fn slashValidator(state: *consensus.BeaconState, slashed_index: primitives.V
     balance_helper.increaseBalance(state, whistleblower, whistleblower_reward - proposer_reward);
 }
 
+pub fn isCompoundingWithdrawalCredential(withdrawal_credentials: primitives.Bytes32) bool {
+    return withdrawal_credentials[0] == constants.COMPOUNDING_WITHDRAWAL_PREFIX;
+}
+
+pub fn hasCompoundingWithdrawalCredential(validator: *consensus.Validator) bool {
+    // Check if validator has an 0x02 prefixed "compounding" withdrawal credential
+    return isCompoundingWithdrawalCredential(validator.withdrawal_credentials);
+}
+
 test "test getBalanceChurnLimit" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();

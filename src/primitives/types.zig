@@ -3,7 +3,7 @@ const constants = @import("constants.zig");
 const utils = @import("utils.zig");
 const preset = @import("../presets/preset.zig");
 
-pub const Bytes1 = [1]u8;
+pub const Bytes1 = u8;
 pub const Bytes4 = [4]u8;
 pub const Bytes20 = [20]u8;
 pub const Bytes32 = [32]u8;
