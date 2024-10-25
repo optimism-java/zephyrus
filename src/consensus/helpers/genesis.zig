@@ -249,7 +249,7 @@ pub fn initializeBeaconStateFromEth1(
     }
 
     // Set genesis validators root for domain separation and chain versioning
-    try ssz.hashTreeRoot(state.validators(), state.genesisValidatorsRootRef(), allocator);
+    try ssz.hashTreeRoot(state.validators(), state.genesisValidatorsRootPtr(), allocator);
 
     // // Fill in sync committees
     // state.current_sync_committee = try get_next_sync_committee(&state);

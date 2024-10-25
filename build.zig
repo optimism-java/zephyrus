@@ -15,6 +15,14 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const bls = b.addModule(
+        "bls",
+        .{ .root_source_file = b.path("src/bls/bls.zig"), .link_libc = true },
+    );
+    bls.addObjectFile(b.path("bls/lib/libbls384_256.a"));
+    bls.addIncludePath(b.path("bls/include/"));
+    bls.addIncludePath(b.path("bls/mcl/include/"));
+
     const lib = b.addStaticLibrary(.{
         .name = "zephyrus",
         // In this case the main source file is merely a path, however, in more
@@ -83,8 +91,9 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    // lib_unit_tests.root_module.addImport("zabi", ssz_dep.module("zabi"));
-
+    lib_unit_tests.root_module.addImport("bls", bls);
+    lib_unit_tests.addIncludePath(b.path("bls/include/"));
+    lib_unit_tests.addIncludePath(b.path("bls/mcl/include/"));
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
     const exe_unit_tests = b.addTest(.{

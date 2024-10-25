@@ -25,6 +25,7 @@ pub const ssz = @import("./ssz/ssz.zig");
 pub const snappy = @import("./snappy/snappy.zig");
 pub const merkle = @import("consensus/helpers/merkle.zig");
 pub const genesis_helper = @import("consensus/helpers/genesis.zig");
+pub const bls = @import("./bls/bls.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

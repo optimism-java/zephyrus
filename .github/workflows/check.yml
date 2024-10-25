@@ -44,6 +44,11 @@ jobs:
       - name: Formatting
         run: zig fmt --check --color on .
 
+      - name: Bls
+        run: |
+          git submodule update --init --recursive
+          cd bls
+          make -f Makefile.onelib ETH_CFLAGS=-DBLS_ETH LIB_DIR=lib
       - name: Unit testing
         run: zig build test --summary all
 
