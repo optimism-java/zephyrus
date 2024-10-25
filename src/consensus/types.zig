@@ -561,7 +561,7 @@ pub const BeaconState = union(primitives.ForkType) {
         };
     }
 
-    pub fn genesisValidatorsRootRef(self: *BeaconState) *primitives.Root {
+    pub fn genesisValidatorsRootPtr(self: *BeaconState) *primitives.Root {
         return switch (self.*) {
             inline else => |*state| &state.genesis_validators_root,
         };
