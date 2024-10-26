@@ -15,9 +15,18 @@ const bls = @cImport({
 pub const MSG_SIZE = 32;
 pub const Message = [MSG_SIZE]u8;
 
+var init_mutex: std.Thread.Mutex = .{};
+var is_initialized: bool = false;
+
 pub fn init() bool {
+    init_mutex.lock();
+    defer init_mutex.unlock();
+
+    if (is_initialized) return true;
+
     const res = bls.blsInit(bls.MCL_BLS12_381, bls.MCLBN_COMPILED_TIME_VAR);
-    return res == 0;
+    is_initialized = (res == 0);
+    return is_initialized;
 }
 
 pub const SecretKey = struct {
@@ -33,7 +42,7 @@ pub const SecretKey = struct {
     }
     pub fn deserialize(self: *SecretKey, buf: []const u8) bool {
         const len: usize = @intCast(bls.blsSecretKeyDeserialize(&self.v_, buf.ptr, buf.len));
-        std.debug.print("len={} buf.len={}\n", .{ len, buf.len });
+        std.log.debug("len={} buf.len={}", .{ len, buf.len });
         return len > 0 and len == buf.len;
     }
     // set (buf[] as littleEndian) % r
@@ -75,7 +84,7 @@ pub const PublicKey = struct {
     }
     pub fn deserialize(self: *PublicKey, buf: []const u8) bool {
         const len: usize = @intCast(bls.blsPublicKeyDeserialize(&self.v_, buf.ptr, buf.len));
-        std.debug.print("len={} buf.len={}\n", .{ len, buf.len });
+        std.log.debug("len={} buf.len={}", .{ len, buf.len });
         return len > 0 and len == buf.len;
     }
     pub fn verify(self: *const PublicKey, sig: *const Signature, msg: []const u8) bool {
@@ -95,7 +104,7 @@ pub const Signature = struct {
     }
     pub fn deserialize(self: *Signature, buf: []const u8) bool {
         const len: usize = @intCast(bls.blsSignatureDeserialize(&self.v_, buf.ptr, buf.len));
-        std.debug.print("len={} buf.len={}\n", .{ len, buf.len });
+        std.log.debug("len={} buf.len={}", .{ len, buf.len });
         return len > 0 and len == buf.len;
     }
     pub fn add(self: *Signature, rhs: *const Signature) void {
