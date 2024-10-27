@@ -389,11 +389,26 @@ pub fn slashValidator(state: *consensus.BeaconState, slashed_index: primitives.V
     balance_helper.increaseBalance(state, whistleblower, whistleblower_reward - proposer_reward);
 }
 
+/// isCompoundingWithdrawalCredential checks if a withdrawal credential is a compounding withdrawal credential.
+/// @param withdrawal_credentials The withdrawal credential to check.
+/// @return True if the withdrawal credential is a compounding withdrawal credential, false otherwise.
+/// Spec pseudocode definition:
+/// def is_compounding_withdrawal_credential(withdrawal_credentials: Bytes32) -> bool:
+///     return withdrawal_credentials[:1] == COMPOUNDING_WITHDRAWAL_PREFIX
 pub fn isCompoundingWithdrawalCredential(withdrawal_credentials: primitives.Bytes32) bool {
     return withdrawal_credentials[0] == constants.COMPOUNDING_WITHDRAWAL_PREFIX;
 }
 
-pub fn hasCompoundingWithdrawalCredential(validator: *consensus.Validator) bool {
+/// hasCompoundingWithdrawalCredential checks if a validator has a compounding withdrawal credential.
+/// @param validator The validator to check.
+/// @return True if the validator has a compounding withdrawal credential, false otherwise.
+/// Spec pseudocode definition:
+/// def has_compounding_withdrawal_credential(validator: Validator) -> bool:
+///     """
+///     Check if ``validator`` has an 0x02 prefixed "compounding" withdrawal credential.
+///     """
+///      return is_compounding_withdrawal_credential(validator.withdrawal_credentials)
+pub fn hasCompoundingWithdrawalCredential(validator: *const consensus.Validator) bool {
     // Check if validator has an 0x02 prefixed "compounding" withdrawal credential
     return isCompoundingWithdrawalCredential(validator.withdrawal_credentials);
 }

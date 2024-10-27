@@ -534,6 +534,56 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
+    pub fn setLatestExecutionPayloadHeader(self: *BeaconState, header: ExecutionPayloadHeader) void {
+        const supported_forks = [_]primitives.ForkType{
+            .bellatrix,
+            .capella,
+            .deneb,
+            .electra,
+        };
+
+        inline for (supported_forks) |f| {
+            if (std.meta.activeTag(self.*) == f) {
+                @field(self, @tagName(f)).latest_execution_payload_header = header;
+                return;
+            }
+        }
+    }
+
+    pub fn setCurrentSyncCommittee(self: *BeaconState, sync_committee: SyncCommittee) void {
+        const supported_forks = [_]primitives.ForkType{
+            .altair,
+            .bellatrix,
+            .capella,
+            .deneb,
+            .electra,
+        };
+
+        inline for (supported_forks) |f| {
+            if (std.meta.activeTag(self.*) == f) {
+                @field(self, @tagName(f)).current_sync_committee = sync_committee;
+                return;
+            }
+        }
+    }
+
+    pub fn setNextSyncCommittee(self: *BeaconState, sync_committee: SyncCommittee) void {
+        const supported_forks = [_]primitives.ForkType{
+            .altair,
+            .bellatrix,
+            .capella,
+            .deneb,
+            .electra,
+        };
+
+        inline for (supported_forks) |f| {
+            if (std.meta.activeTag(self.*) == f) {
+                @field(self, @tagName(f)).next_sync_committee = sync_committee;
+                return;
+            }
+        }
+    }
+
     pub fn forkedBeaconState(self: *BeaconState) *BeaconState {
         return self;
     }

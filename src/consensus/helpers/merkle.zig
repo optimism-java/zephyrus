@@ -6,7 +6,7 @@ const constants = @import("../../primitives/constants.zig");
 const preset = @import("../../presets/preset.zig");
 const sha256 = std.crypto.hash.sha2.Sha256;
 
-/// verifyMerkleProof verifies a merkle proof.
+/// isValidMerkleBranch verifies a merkle proof.
 /// @param leaf - The leaf value.
 /// @param branch - The branch.
 /// @param depth - The depth.
@@ -25,7 +25,7 @@ const sha256 = std.crypto.hash.sha2.Sha256;
 ///         else:
 ///              value = hash(value + branch[i])
 ///     return value == root
-pub fn verifyMerkleProof(leaf: primitives.Bytes32, branch: []const primitives.Bytes32, depth: u64, index: u64, root: primitives.Root) !bool {
+pub fn isValidMerkleBranch(leaf: primitives.Bytes32, branch: []const primitives.Bytes32, depth: u64, index: u64, root: primitives.Root) !bool {
     var value: [32]u8 = leaf;
     var i: u64 = 0;
     while (i < depth) : (i += 1) {
@@ -42,13 +42,13 @@ pub fn verifyMerkleProof(leaf: primitives.Bytes32, branch: []const primitives.By
     return std.mem.eql(u8, &value, &root);
 }
 
-test "verifyMerkleProof" {
+test isValidMerkleBranch {
     const leaf: primitives.Bytes32 = undefined;
     const branch: [32]primitives.Bytes32 = undefined;
     const root: primitives.Root = undefined;
     const depth: u64 = 0;
     const index: u64 = 0;
-    try std.testing.expect(try verifyMerkleProof(leaf, &branch, depth, index, root));
+    try std.testing.expect(try isValidMerkleBranch(leaf, &branch, depth, index, root));
 }
 
 test "verifyMerkleProof with valid branch" {
@@ -57,5 +57,5 @@ test "verifyMerkleProof with valid branch" {
     const root: primitives.Root = [_]u8{ 228, 209, 245, 144, 152, 7, 227, 251, 129, 176, 248, 115, 30, 139, 1, 35, 21, 112, 168, 110, 176, 175, 25, 181, 52, 215, 85, 95, 22, 63, 166, 194 };
     const depth: u64 = 5;
     const index: u64 = 0;
-    try std.testing.expect(try verifyMerkleProof(leaf, &branch, depth, index, root));
+    try std.testing.expect(try isValidMerkleBranch(leaf, &branch, depth, index, root));
 }

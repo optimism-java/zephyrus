@@ -89,6 +89,27 @@ pub fn decreaseBalance(state: *const consensus.BeaconState, index: primitives.Va
     }
 }
 
+/// getMaxEffectiveBalance returns the maximum effective balance for `validator`.
+/// @param validator - The validator to get the maximum effective balance for.
+/// @returns The maximum effective balance for `validator`.
+/// Spec pseudocode definition:
+/// def get_max_effective_balance(validator: Validator) -> Gwei:
+///     """
+///     Get max effective balance for ``validator``.
+///     """
+///     if has_compounding_withdrawal_credential(validator):
+///        return MAX_EFFECTIVE_BALANCE_ELECTRA
+///     else:
+///        return MIN_ACTIVATION_BALANCE
+pub fn getMaxEffectiveBalance(validator: *const consensus.Validator) primitives.Gwei {
+    // Get max effective balance for `validator`.
+    if (validator_helper.hasCompoundingWithdrawalCredential(validator)) {
+        return preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE_ELECTRA;
+    } else {
+        return preset.ActivePreset.get().MIN_ACTIVATION_BALANCE;
+    }
+}
+
 test "test getTotalBalance" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
@@ -328,5 +349,44 @@ test "test decreaseBalance" {
     try std.testing.expectEqual(
         0,
         state.balances()[2],
+    );
+}
+
+test "test getMaxEffectiveBalance" {
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+
+    const validator = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = [_]u8{0x2} ++ [_]u8{0} ** 31,
+        .effective_balance = 10000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+
+    const max_effective_balance = getMaxEffectiveBalance(&validator);
+    try std.testing.expectEqual(
+        preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE_ELECTRA,
+        max_effective_balance,
+    );
+
+    const validator1 = consensus.Validator{
+        .pubkey = undefined,
+        .withdrawal_credentials = [_]u8{0} ** 32,
+        .effective_balance = 10000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+
+    const max_effective_balance1 = getMaxEffectiveBalance(&validator1);
+    try std.testing.expectEqual(
+        preset.ActivePreset.get().MIN_ACTIVATION_BALANCE,
+        max_effective_balance1,
     );
 }
