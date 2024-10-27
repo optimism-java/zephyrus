@@ -193,6 +193,13 @@ pub const SyncCommittee = union(primitives.ForkType) {
     capella: altair.SyncCommittee,
     deneb: altair.SyncCommittee,
     electra: altair.SyncCommittee,
+
+    pub fn deinit(self: *const SyncCommittee, allocator: std.mem.Allocator) void {
+        switch (self.*) {
+            .altair, .bellatrix, .capella, .deneb, .electra => |committee| allocator.free(committee.pubkeys),
+            else => {},
+        }
+    }
 };
 
 pub const SyncCommitteeMessage = union(primitives.ForkType) {

@@ -10,6 +10,8 @@ const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const validator_helper = @import("../../consensus/helpers/validator.zig");
 const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
 const seed_helper = @import("../../consensus/helpers/seed.zig");
+const bls_helper = @import("../../consensus/helpers/bls.zig");
+const bls = @import("../../bls/bls.zig");
 const sha256 = std.crypto.hash.sha2.Sha256;
 
 /// Calculates the committee count per slot for a given epoch
@@ -154,7 +156,7 @@ pub fn getBeaconProposerIndex(state: *const consensus.BeaconState, allocator: st
 ///            sync_committee_indices.append(candidate_index)
 ///        i += 1
 ///     return sync_committee_indices
-pub fn getNextSyncCommitteeIndices(state: *consensus.BeaconState, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
+pub fn getNextSyncCommitteeIndices(state: *const consensus.BeaconState, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
     const epoch = @as(primitives.Epoch, epoch_helper.getCurrentEpoch(state) + 1);
     const MAX_RANDOM_BYTE = std.math.maxInt(u8);
 
@@ -189,6 +191,47 @@ pub fn getNextSyncCommitteeIndices(state: *consensus.BeaconState, allocator: std
         i += 1;
     }
     return result;
+}
+
+/// getNextSyncCommittee returns the next sync committee.
+/// @param state - The beacon state.
+/// @param allocator - The allocator.
+/// @returns The next sync committee.
+/// Spec pseudocode definition:
+/// def get_next_sync_committee(state: BeaconState) -> SyncCommittee:
+///     """
+///     Return the next sync committee, with possible pubkey duplicates.
+///    """
+///    indices = get_next_sync_committee_indices(state)
+///    pubkeys = [state.validators[index].pubkey for index in indices]
+///    aggregate_pubkey = eth_aggregate_pubkeys(pubkeys)
+///    return SyncCommittee(pubkeys=pubkeys, aggregate_pubkey=aggregate_pubkey)
+pub fn getNextSyncCommittee(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !consensus.SyncCommittee {
+    // Return the next sync committee, with possible pubkey duplicates.
+
+    const indices = try getNextSyncCommitteeIndices(state, allocator);
+    defer allocator.free(indices);
+    var pubkeys = std.ArrayList(primitives.BLSPubkey).init(allocator);
+    defer pubkeys.deinit();
+
+    // Collect pubkeys with explicit error handling
+    for (indices) |index| {
+        try pubkeys.append(state.validators()[index].pubkey);
+    }
+    var aggregate_pubkey: primitives.BLSPubkey = undefined;
+    var aggregate_pubkey_bytes: []u8 = &aggregate_pubkey;
+    _ = try bls_helper.ethAggregatePubkeys(pubkeys.items, &aggregate_pubkey_bytes);
+
+    // Transfer ownership of pubkeys to the returned struct
+    const pubkeys_slice = try pubkeys.toOwnedSlice();
+    return switch (state.*) {
+        .phase0 => .{ .phase0 = consensus.NonExistType{} },
+        .altair => .{ .altair = altair.SyncCommittee.init(pubkeys_slice, aggregate_pubkey) },
+        .bellatrix => .{ .bellatrix = altair.SyncCommittee.init(pubkeys_slice, aggregate_pubkey) },
+        .capella => .{ .capella = altair.SyncCommittee.init(pubkeys_slice, aggregate_pubkey) },
+        .deneb => .{ .deneb = altair.SyncCommittee.init(pubkeys_slice, aggregate_pubkey) },
+        .electra => .{ .electra = altair.SyncCommittee.init(pubkeys_slice, aggregate_pubkey) },
+    };
 }
 
 test "test getCommitteeCountPerSlot" {
@@ -531,4 +574,102 @@ test "test getNextSyncCommitteeIndices" {
     try std.testing.expectEqual(260131, indices[2]);
     try std.testing.expectEqual(141919, indices[3]);
     try std.testing.expectEqual(693377, indices[4]);
+}
+
+test "test getNextSyncCommittee" {
+    const a = bls.init();
+    try std.testing.expect(a);
+    preset.ActivePreset.set(preset.Presets.minimal);
+    defer preset.ActivePreset.reset();
+    const finalized_checkpoint = consensus.Checkpoint{
+        .epoch = 5,
+        .root = .{0} ** 32,
+    };
+    var validators = std.ArrayList(consensus.Validator).init(std.testing.allocator);
+    defer validators.deinit();
+
+    var sk: bls.SecretKey = undefined;
+    var pk: bls.PublicKey = undefined;
+    sk.setByCSPRNG();
+    var sk_bytes: [32]u8 = undefined;
+    var sk_bytes_ptr: []u8 = &sk_bytes;
+
+    _ = sk.serialize(&sk_bytes_ptr);
+    sk.getPublicKey(&pk);
+    var pk_bytes: primitives.BLSPubkey = undefined;
+    var pk_bytes_ptr: []u8 = &pk_bytes;
+    _ = pk.serialize(&pk_bytes_ptr);
+
+    const validator1 = consensus.Validator{
+        .pubkey = pk_bytes,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 1000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 10,
+        .withdrawable_epoch = 10,
+    };
+    const validator2 = consensus.Validator{
+        .pubkey = pk_bytes,
+        .withdrawal_credentials = undefined,
+        .effective_balance = 1000000000,
+        .slashed = false,
+        .activation_eligibility_epoch = 0,
+        .activation_epoch = 0,
+        .exit_epoch = 20,
+        .withdrawable_epoch = 20,
+    };
+
+    for (0..500000) |_| {
+        try validators.append(validator1);
+        try validators.append(validator2);
+    }
+
+    var block_roots = std.ArrayList(primitives.Root).init(std.testing.allocator);
+    defer block_roots.deinit();
+    const block_root1 = .{0} ** 32;
+    const block_root2 = .{1} ** 32;
+    const block_root3 = .{2} ** 32;
+    try block_roots.append(block_root1);
+    try block_roots.append(block_root2);
+    try block_roots.append(block_root3);
+    var randao_mixes = try std.ArrayList(primitives.Bytes32).initCapacity(std.testing.allocator, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
+    defer randao_mixes.deinit();
+    for (0..preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR) |slot_index| {
+        try randao_mixes.append(.{@as(u8, @intCast(slot_index))} ** 32);
+    }
+    var state = consensus.BeaconState{
+        .altair = altair.BeaconState{
+            .genesis_time = 0,
+            .genesis_validators_root = .{0} ** 32,
+            .slot = 100,
+            .fork = undefined,
+            .block_roots = block_roots.items,
+            .state_roots = undefined,
+            .historical_roots = undefined,
+            .eth1_data = undefined,
+            .eth1_data_votes = undefined,
+            .eth1_deposit_index = 0,
+            .validators = validators.items,
+            .balances = undefined,
+            .randao_mixes = randao_mixes.items,
+            .slashings = undefined,
+            .previous_epoch_attestations = undefined,
+            .current_epoch_attestations = undefined,
+            .justification_bits = undefined,
+            .previous_justified_checkpoint = undefined,
+            .current_justified_checkpoint = undefined,
+            .finalized_checkpoint = finalized_checkpoint,
+            .latest_block_header = undefined,
+            .inactivity_scores = undefined,
+            .current_sync_committee = undefined,
+            .next_sync_committee = undefined,
+        },
+    };
+
+    const next_sync_committee = try getNextSyncCommittee(&state, std.testing.allocator);
+    defer next_sync_committee.deinit(std.testing.allocator);
+    try std.testing.expectEqual(pk_bytes, next_sync_committee.altair.pubkeys[0]);
+    try std.testing.expectEqual(48, next_sync_committee.altair.aggregate_pubkey.len);
 }

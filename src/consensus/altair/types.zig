@@ -51,6 +51,10 @@ pub const SyncAggregate = struct {
 pub const SyncCommittee = struct {
     pubkeys: []primitives.BLSPubkey,
     aggregate_pubkey: primitives.BLSPubkey,
+
+    pub fn init(pubkeys: []primitives.BLSPubkey, aggregate_pubkey: primitives.BLSPubkey) SyncCommittee {
+        return SyncCommittee{ .pubkeys = pubkeys, .aggregate_pubkey = aggregate_pubkey };
+    }
 };
 
 pub const SyncCommitteeMessage = struct {
