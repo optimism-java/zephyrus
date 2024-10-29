@@ -269,6 +269,8 @@ test "test BeaconState" {
         .pending_balance_deposits = undefined,
         .pending_partial_withdrawals = undefined,
         .pending_consolidations = undefined,
+        .previous_epoch_participation = undefined,
+        .current_epoch_participation = undefined,
     };
 
     try std.testing.expectEqual(state.genesis_time, 0);

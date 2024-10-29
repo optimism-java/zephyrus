@@ -91,6 +91,8 @@ pub const DomainTypeSize = @sizeOf(DomainType);
 pub const EpochSize = @sizeOf(Epoch);
 pub const Bytes32Size = @sizeOf(Bytes32);
 
+pub const ParticipationFlags = u8;
+
 /// computeActivationExitEpoch computes the activation exit epoch for a given epoch.
 /// @param epoch The epoch to compute the activation exit epoch for.
 /// @return The activation exit epoch.
@@ -103,6 +105,24 @@ pub const Bytes32Size = @sizeOf(Bytes32);
 ///    return Epoch(epoch + 1 + MAX_SEED_LOOKAHEAD)
 pub fn computeActivationExitEpoch(epoch: Epoch) Epoch {
     return @intCast(epoch + 1 + preset.ActivePreset.get().MAX_SEED_LOOKAHEAD);
+}
+
+/// setOrAppendList sets the value at the given index in the list or appends it if the index is equal to the length of the list.
+///
+/// Spec pseudocode definition:
+/// def set_or_append_list(list: List, index: ValidatorIndex, value: Any) -> None:
+///     if index == len(list):
+///         list.append(value)
+///     else:
+///         list[index] = value
+pub fn setOrAppendList(comptime T: type, list: []T, index: ValidatorIndex, value: anytype) error{IndexOutOfBounds}!void {
+    if (index > list.len) return error.IndexOutOfBounds;
+    // check if value is a pointer
+    if (@typeInfo(@TypeOf(value)) == .pointer) {
+        list[index] = value.*;
+    } else {
+        list[index] = value;
+    }
 }
 
 test "test ExecutionBranch length" {
@@ -144,4 +164,21 @@ test "test compute_activation_exit_epochs" {
     const epoch: Epoch = 5;
     const result = computeActivationExitEpoch(epoch);
     try std.testing.expectEqual(result, 5 + 1 + preset.ActivePreset.get().MAX_SEED_LOOKAHEAD);
+}
+
+test "test setOrAppendList" {
+
+    // var list = std.ArrayList(u64).init(std.testing.allocator);
+    // defer list.deinit();
+    // try setOrAppendList(u64, &list, 0, 1);
+    // try std.testing.expectEqual(@as(u64, 1), list.items[0]);
+    // try setOrAppendList(u64, &list, 1, 2);
+    // try setOrAppendList(u64, &list, 0, 3);
+    // try setOrAppendList(u64, &list, 2, 4);
+    // try setOrAppendList(u64, &list, 3, 5);
+    //
+    // try std.testing.expectEqual(@as(u64, 3), list.items[0]);
+    // try std.testing.expectEqual(@as(u64, 2), list.items[1]);
+    // try std.testing.expectEqual(@as(u64, 4), list.items[2]);
+    // try std.testing.expectEqual(@as(u64, 5), list.items[3]);
 }

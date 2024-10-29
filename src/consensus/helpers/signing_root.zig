@@ -34,6 +34,5 @@ test "test computeSigningRoot" {
         .genesis_validators_root = @as(primitives.Root, .{0} ** 32),
     };
     const signingRoot = computeSigningRoot(forkData, &domain, std.testing.allocator);
-    std.debug.print("signingRoot: {any}\n", .{signingRoot});
     try std.testing.expectEqual(signingRoot, .{ 122, 5, 1, 245, 149, 123, 223, 156, 179, 168, 255, 73, 102, 240, 34, 101, 249, 104, 101, 139, 122, 156, 98, 100, 44, 186, 17, 101, 232, 102, 66, 245 });
 }

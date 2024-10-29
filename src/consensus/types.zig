@@ -37,6 +37,39 @@ pub const Validator = struct {
     activation_epoch: primitives.Epoch,
     exit_epoch: primitives.Epoch,
     withdrawable_epoch: primitives.Epoch,
+
+    /// getValidatorFromDeposit creates a new validator from a deposit.
+    /// @param pubkey The public key of the validator.
+    /// @param withdrawal_credentials The withdrawal credentials of the validator.
+    /// @param amount The amount of the deposit.
+    /// @return The validator.
+    /// Spec pseudocode definition:
+    /// def get_validator_from_deposit(pubkey: BLSPubkey, withdrawal_credentials: Bytes32, amount: uint64) -> Validator:
+    ///     effective_balance = min(amount - amount % EFFECTIVE_BALANCE_INCREMENT, MAX_EFFECTIVE_BALANCE)
+    ///
+    ///     return Validator(
+    ///                      pubkey=pubkey,
+    ///                      withdrawal_credentials=withdrawal_credentials,
+    ///                      activation_eligibility_epoch=FAR_FUTURE_EPOCH,
+    ///                      activation_epoch=FAR_FUTURE_EPOCH,
+    ///                      exit_epoch=FAR_FUTURE_EPOCH,
+    ///                      withdrawable_epoch=FAR_FUTURE_EPOCH,
+    ///                      effective_balance=effective_balance,
+    ///     )
+    pub fn getValidatorFromDeposit(pubkey: *const primitives.BLSPubkey, withdrawal_credentials: *const primitives.Bytes32, amount: u64) Validator {
+        const effective_balance = @min(amount - @mod(amount, preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT), preset.ActivePreset.get().MAX_EFFECTIVE_BALANCE);
+
+        return Validator{
+            .pubkey = pubkey.*,
+            .withdrawal_credentials = withdrawal_credentials.*,
+            .activation_eligibility_epoch = constants.FAR_FUTURE_EPOCH,
+            .activation_epoch = constants.FAR_FUTURE_EPOCH,
+            .exit_epoch = constants.FAR_FUTURE_EPOCH,
+            .withdrawable_epoch = constants.FAR_FUTURE_EPOCH,
+            .effective_balance = effective_balance,
+            .slashed = false,
+        };
+    }
 };
 
 pub const AttestationData = struct {
@@ -665,6 +698,43 @@ pub const BeaconState = union(primitives.ForkType) {
     pub fn finalizedCheckpointEpoch(self: *const BeaconState) primitives.Epoch {
         return switch (self.*) {
             inline else => |state| state.finalized_checkpoint.epoch,
+        };
+    }
+
+    /// getIndexForNewValidator returns the index for a new validator.
+    ///
+    /// Spec pseudocode definition:
+    /// def get_index_for_new_validator(state: BeaconState) -> ValidatorIndex:
+    ///     return ValidatorIndex(len(state.validators))
+    pub fn getIndexForNewValidator(self: *const BeaconState) primitives.ValidatorIndex {
+        return @as(primitives.ValidatorIndex, self.validators().len);
+    }
+
+    pub fn previousEpochParticipation(self: *const BeaconState) []u8 {
+        return switch (self.*) {
+            .phase0 => @panic("previous_epoch_participation is not supported for phase0"),
+            inline else => |state| state.previous_epoch_participation,
+        };
+    }
+
+    pub fn currentEpochParticipation(self: *const BeaconState) []u8 {
+        return switch (self.*) {
+            .phase0 => @panic("current_epoch_participation is not supported for phase0"),
+            inline else => |state| state.current_epoch_participation,
+        };
+    }
+
+    pub fn inactivityScores(self: *const BeaconState) []u64 {
+        return switch (self.*) {
+            .phase0 => @panic("inactivity_scores is not supported for phase0"),
+            inline else => |state| state.inactivity_scores,
+        };
+    }
+
+    pub fn pendingBalanceDeposit(self: *const BeaconState) []PendingBalanceDeposit {
+        return switch (self.*) {
+            .phase0, .altair, .bellatrix, .capella, .deneb => @panic("pending_balance_deposits is not supported for phase0"),
+            inline else => |state| state.pending_balance_deposits,
         };
     }
 };

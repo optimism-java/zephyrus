@@ -128,6 +128,20 @@ pub const BeaconState = @Type(
                     .is_comptime = false,
                     .alignment = @alignOf(consensus.SyncCommittee),
                 },
+                .{
+                    .name = "previous_epoch_participation",
+                    .type = []primitives.ParticipationFlags,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf([]primitives.ParticipationFlags),
+                },
+                .{
+                    .name = "current_epoch_participation",
+                    .type = []primitives.ParticipationFlags,
+                    .default_value = null,
+                    .is_comptime = false,
+                    .alignment = @alignOf([]primitives.ParticipationFlags),
+                },
             },
             .decls = &.{},
             .is_tuple = false,
@@ -161,6 +175,8 @@ test "test BeaconState" {
         .inactivity_scores = undefined,
         .current_sync_committee = undefined,
         .next_sync_committee = undefined,
+        .previous_epoch_participation = undefined,
+        .current_epoch_participation = undefined,
     };
 
     try std.testing.expectEqual(state.genesis_time, 0);

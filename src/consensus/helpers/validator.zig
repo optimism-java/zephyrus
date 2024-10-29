@@ -6,6 +6,7 @@ const constants = @import("../../primitives/constants.zig");
 const preset = @import("../../presets/preset.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");
 const altair = @import("../../consensus/altair/types.zig");
+const electra = @import("../../consensus/electra/types.zig");
 const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
 const balance_helper = @import("../../consensus/helpers/balance.zig");
@@ -413,6 +414,52 @@ pub fn hasCompoundingWithdrawalCredential(validator: *const consensus.Validator)
     return isCompoundingWithdrawalCredential(validator.withdrawal_credentials);
 }
 
+/// addValidatorToRegistry adds a validator to the validator registry.
+///
+/// Spec pseudocode definition:
+/// def add_validator_to_registry(state: BeaconState,
+///                               pubkey: BLSPubkey,
+///                               withdrawal_credentials: Bytes32,
+///                               amount: uint64) -> None:
+///     index = get_index_for_new_validator(state)
+///     validator = get_validator_from_deposit(pubkey, withdrawal_credentials)
+///     set_or_append_list(state.validators, index, validator)
+///     set_or_append_list(state.balances, index, 0)  # [Modified in Electra:EIP7251]
+///     set_or_append_list(state.previous_epoch_participation, index, ParticipationFlags(0b0000_0000))
+///     set_or_append_list(state.current_epoch_participation, index, ParticipationFlags(0b0000_0000))
+///     set_or_append_list(state.inactivity_scores, index, uint64(0))
+///     state.pending_balance_deposits.append(PendingBalanceDeposit(index=index, amount=amount))  # [New in Electra:EIP7251]
+pub fn addValidatorToRegistry(state: *consensus.BeaconState, pubkey: *const primitives.BLSPubkey, withdrawal_credentials: *primitives.Bytes32, amount: u64) !void {
+    const index = state.getIndexForNewValidator();
+    const validator = consensus.Validator.getValidatorFromDeposit(pubkey, withdrawal_credentials, amount);
+    try primitives.setOrAppendList(consensus.Validator, state.validators(), index, &validator);
+
+    switch (state.*) {
+        .phase0 => {
+            try primitives.setOrAppendList(primitives.Gwei, state.balances(), index, amount);
+        },
+        .altair, .bellatrix, .capella, .deneb => {
+            try primitives.setOrAppendList(primitives.Gwei, state.balances(), index, amount);
+            try primitives.setOrAppendList(primitives.ParticipationFlags, state.previousEpochParticipation(), index, @as(primitives.ParticipationFlags, 0b0000_0000));
+            try primitives.setOrAppendList(primitives.ParticipationFlags, state.currentEpochParticipation(), index, @as(primitives.ParticipationFlags, 0b0000_0000));
+            try primitives.setOrAppendList(u64, state.inactivityScores(), index, 0);
+        },
+        .electra => {
+            try primitives.setOrAppendList(primitives.Gwei, state.balances(), index, 0);
+            try primitives.setOrAppendList(primitives.ParticipationFlags, state.previousEpochParticipation(), index, @as(primitives.ParticipationFlags, 0b0000_0000));
+            try primitives.setOrAppendList(primitives.ParticipationFlags, state.currentEpochParticipation(), index, @as(primitives.ParticipationFlags, 0b0000_0000));
+            try primitives.setOrAppendList(u64, state.inactivityScores(), index, 0);
+            const pending_balance_deposit = consensus.PendingBalanceDeposit{
+                .electra = electra.PendingBalanceDeposit{
+                    .amount = amount,
+                    .index = index,
+                },
+            };
+            try primitives.setOrAppendList(consensus.PendingBalanceDeposit, state.pendingBalanceDeposit(), index, &pending_balance_deposit);
+        },
+    }
+}
+
 test "test getBalanceChurnLimit" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
@@ -473,6 +520,8 @@ test "test getBalanceChurnLimit" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -547,6 +596,8 @@ test "test getValidatorChurnLimit" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -585,6 +636,8 @@ test "test getValidatorChurnLimit" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -777,6 +830,8 @@ test "test_getActiveValidatorIndices_withTwoActiveValidators" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -849,6 +904,8 @@ test "test computeProposerIndex" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -926,6 +983,8 @@ test "test slashValidator" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 

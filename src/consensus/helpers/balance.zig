@@ -174,6 +174,8 @@ test "test getTotalBalance" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -254,6 +256,8 @@ test "test getTotalActiveBalance" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -295,6 +299,8 @@ test "test increaseBalance" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -336,6 +342,8 @@ test "test decreaseBalance" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 

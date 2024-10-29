@@ -236,6 +236,8 @@ test "test BeaconState" {
         .next_withdrawal_index = 0,
         .next_withdrawal_validator_index = 0,
         .historical_summaries = undefined,
+        .previous_epoch_participation = undefined,
+        .current_epoch_participation = undefined,
     };
 
     try std.testing.expectEqual(state.genesis_time, 0);

@@ -298,6 +298,8 @@ test "test getCommitteeCountPerSlot" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -398,6 +400,8 @@ test "test getBeaconCommittee" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -483,6 +487,8 @@ test "test getBeaconProposerIndex" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -563,6 +569,8 @@ test "test getNextSyncCommitteeIndices" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -665,6 +673,8 @@ test "test getNextSyncCommittee" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 

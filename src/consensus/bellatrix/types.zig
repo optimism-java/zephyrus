@@ -172,6 +172,8 @@ test "test BeaconState" {
         .current_sync_committee = undefined,
         .next_sync_committee = undefined,
         .latest_execution_payload_header = undefined,
+        .previous_epoch_participation = undefined,
+        .current_epoch_participation = undefined,
     };
 
     try std.testing.expectEqual(state.genesis_time, 0);

@@ -167,6 +167,8 @@ test "test getDomain" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
     const domainType = .{3} ** 4;

@@ -352,6 +352,8 @@ test "test getAttestingIndices" {
             .pending_partial_withdrawals = undefined,
             .pending_consolidations = undefined,
             .deposit_requests_start_index = 0,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -464,6 +466,8 @@ test "test getIndexedAttestation" {
             .pending_partial_withdrawals = undefined,
             .pending_consolidations = undefined,
             .deposit_requests_start_index = 0,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 

@@ -212,6 +212,8 @@ test "test compute_exit_epoch_and_update_churn" {
             .pending_balance_deposits = undefined,
             .pending_partial_withdrawals = undefined,
             .pending_consolidations = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -274,6 +276,8 @@ test "test get_activation_exit_churn_limit" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
     const churn_limit = try getActivationExitChurnLimit(&state, std.testing.allocator);
@@ -374,6 +378,8 @@ test "test get_current_epoch" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
@@ -438,6 +444,8 @@ test "test get_previous_epoch" {
             .inactivity_scores = undefined,
             .current_sync_committee = undefined,
             .next_sync_committee = undefined,
+            .previous_epoch_participation = undefined,
+            .current_epoch_participation = undefined,
         },
     };
 
