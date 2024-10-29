@@ -1,3 +1,5 @@
+//! The code bellow is essentially a port of https://github.com/kubkon/zig-yaml
+
 const Tokenizer = @This();
 
 const std = @import("std");

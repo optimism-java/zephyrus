@@ -1,3 +1,7 @@
+//! The code bellow is essentially a port of https://github.com/kubkon/zig-yaml
+//! to the most recent version of zig with a couple of stylistic changes and support for
+//! json yaml.
+
 const std = @import("std");
 const assert = std.debug.assert;
 const log = std.log.scoped(.parse);

@@ -1,3 +1,5 @@
+//! The code bellow is essentially a port of https://github.com/kubkon/zig-yaml
+
 const std = @import("std");
 const mem = std.mem;
 const testing = std.testing;
