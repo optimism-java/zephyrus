@@ -17,6 +17,7 @@ deps: check_nasm
 	@git submodule update --init --recursive
 	@cd bls && make -f Makefile.onelib ETH_CFLAGS=-DBLS_ETH LIB_DIR=lib
 
+deps_test:
 	mkdir -p consensus-spec-tests
 	wget https://github.com/ethereum/consensus-spec-tests/releases/download/$(SPEC_VERSION)/general.tar.gz -O - | tar -xz -C consensus-spec-tests
 	wget https://github.com/ethereum/consensus-spec-tests/releases/download/$(SPEC_VERSION)/minimal.tar.gz -O - | tar -xz -C consensus-spec-tests

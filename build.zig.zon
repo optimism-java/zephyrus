@@ -22,7 +22,6 @@
     // `zig build --fetch` can be used to fetch all dependencies of a package, recursively.
     // Once all dependencies are fetched, `zig build` no longer requires
     // internet connectivity.
-    .dependencies = .{ .yaml = .{ .url = "git+https://github.com/optimism-java/zig-yaml.git#7a7c5162230bb08f73ec22a063010ed7c76ccded", .hash = "1220a6d7148f7777d997ee663e0efe0fb9c57a38658ea164bcd267e8391c3ce0aa87" } },
     .paths = .{
         "build.zig",
         "build.zig.zon",

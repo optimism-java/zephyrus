@@ -4,10 +4,15 @@ const ssz = @import("../../ssz/ssz.zig");
 const types = @import("../../consensus/types.zig");
 const snappy = @import("../../snappy/snappy.zig");
 
-const Yaml = @import("yaml").Yaml;
+const Yaml = @import("../../yaml/yaml.zig").Yaml;
 
 const gpa = testing.allocator;
 
+/// Loads and parses a YAML file into a Yaml object
+/// Parameters:
+///   file_path: Path to the YAML file to load
+/// Returns:
+///   Parsed Yaml object or error
 fn loadFromFile(file_path: []const u8) !Yaml {
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
@@ -17,15 +22,46 @@ fn loadFromFile(file_path: []const u8) !Yaml {
 
     return Yaml.load(gpa, source);
 }
-
+// load root.yml in spec test
 const Roots = struct {
     root: [32]u8,
 };
-
-const TestCasesUnion = union {
+// test cases for all phases
+const CommonUnion = union {
     Fork: types.Fork,
 };
 
+test "ssz static" {
+    const testPath = "consensus-spec-tests/tests/mainnet";
+    const gpa1 = testing.allocator;
+    const fields = @typeInfo(CommonUnion).@"union".fields;
+    inline for (fields) |field| {
+        const fieldType = field.type;
+        const fieldName = field.name;
+        const ssz_type_path = try std.fmt.allocPrint(gpa1, "{s}/phase0/ssz_static/{s}", .{ testPath, fieldName });
+
+        var dirs = try getLeafDirs(gpa1, ssz_type_path);
+
+        // deinit the dirs array
+        defer {
+            for (dirs.items) |item| {
+                gpa1.free(item);
+            }
+            dirs.deinit();
+        }
+
+        for (dirs.items) |dir| {
+            try testSSZStatic(dir, fieldType);
+        }
+    }
+}
+
+/// Recursively finds all leaf directories (directories with no subdirectories) starting from the given path
+/// Parameters:
+///   allocator: Memory allocator for dynamic allocations
+///   path: Starting directory path to search from
+/// Returns:
+///   ArrayList containing paths to all leaf directories
 fn getLeafDirs(allocator: std.mem.Allocator, path: []const u8) !std.ArrayList([]const u8) {
     var leafDirs = std.ArrayList([]const u8).init(allocator);
     // defer leafDirs.deinit();
@@ -56,10 +92,7 @@ fn getLeafDirs(allocator: std.mem.Allocator, path: []const u8) !std.ArrayList([]
             }
         }
         if (!hasSubDir) {
-            // std.debug.print("currentPath: {s}\n", .{currentPath});
             try leafDirs.append(try allocator.dupe(u8, currentPath));
-            // try leafDirs.append(currentPath);
-            // defer allocator.free(currentPath);
         }
         index += 1;
     }
@@ -67,6 +100,13 @@ fn getLeafDirs(allocator: std.mem.Allocator, path: []const u8) !std.ArrayList([]
     return leafDirs;
 }
 
+/// Tests SSZ (Simple Serialize) static functionality by performing:
+/// 1. YAML parsing
+/// 2. Hash tree root verification
+/// 3. SSZ encoding/decoding with snappy compression
+/// Parameters:
+///   path: Directory path containing test files
+///   t: Type to test SSZ operations against
 fn testSSZStatic(path: []const u8, t: type) !void {
     // parse from yaml
     const valueFile = try std.fmt.allocPrint(testing.allocator, "{s}/value.yaml", .{path});
@@ -98,29 +138,4 @@ fn testSSZStatic(path: []const u8, t: type) !void {
     // test ssz decode
     const decode = try ssz.decodeSSZ(t, decoded_data);
     try std.testing.expectEqualDeep(decode, fork);
-}
-
-test "ssz static" {
-    const testPath = "consensus-spec-tests/tests/mainnet";
-    const gpa1 = testing.allocator;
-    const fields = @typeInfo(TestCasesUnion).@"union".fields;
-    inline for (fields) |field| {
-        const fieldType = field.type;
-        const fieldName = field.name;
-        const ssz_type_path = try std.fmt.allocPrint(gpa1, "{s}/phase0/ssz_static/{s}", .{ testPath, fieldName });
-
-        var dirs = try getLeafDirs(gpa1, ssz_type_path);
-
-        // deinit the dirs array
-        defer {
-            for (dirs.items) |item| {
-                gpa1.free(item);
-            }
-            dirs.deinit();
-        }
-
-        for (dirs.items) |dir| {
-            try testSSZStatic(dir, fieldType);
-        }
-    }
 }

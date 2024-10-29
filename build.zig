@@ -94,12 +94,6 @@ pub fn build(b: *std.Build) void {
     lib_unit_tests.root_module.addImport("bls", bls);
     lib_unit_tests.addIncludePath(b.path("bls/include/"));
     lib_unit_tests.addIncludePath(b.path("bls/mcl/include/"));
-    const yaml = b.dependency("yaml", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    lib_unit_tests.root_module.addImport("yaml", yaml.module("yaml"));
 
     const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
