@@ -27,6 +27,7 @@ pub const merkle = @import("consensus/helpers/merkle.zig");
 pub const genesis_helper = @import("consensus/helpers/genesis.zig");
 pub const bls_helper = @import("consensus/helpers/bls.zig");
 pub const bls = @import("./bls/bls.zig");
+pub const deposit_helper = @import("consensus/helpers/deposit.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

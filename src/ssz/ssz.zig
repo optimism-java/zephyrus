@@ -982,7 +982,7 @@ pub fn hashTreeRoot(value: anytype, out: *[32]u8, allocator: Allocator) !void {
         },
         .pointer => {
             switch (type_info.pointer.size) {
-                .One => hashTreeRoot(value.*, out, allocator),
+                .One => try hashTreeRoot(value.*, out, allocator),
                 .Slice => {
                     switch (@typeInfo(type_info.pointer.child)) {
                         .int => {

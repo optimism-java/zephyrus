@@ -33,6 +33,19 @@ pub fn ethAggregatePubkeys(pub_keys: []const primitives.BLSPubkey, agg_pk_bytes:
     return agg_pk.serialize(agg_pk_bytes);
 }
 
+pub fn verify(pubkey: *const primitives.BLSPubkey, signing_root: *const primitives.Root, signature: *const primitives.BLSSignature) bool {
+    var pk: bls.PublicKey = undefined;
+    var sig: bls.Signature = undefined;
+    var root: [32]u8 = signing_root.*;
+    var sig_bytes: [96]u8 = signature.*;
+    const pk_bytes: [48]u8 = pubkey.*;
+
+    _ = pk.deserialize(&pk_bytes);
+    _ = sig.deserialize(&sig_bytes);
+
+    return pk.verify(&sig, &root);
+}
+
 test "test ethAggregatePubkeys" {
     const a = bls.init();
     try std.testing.expect(a);
