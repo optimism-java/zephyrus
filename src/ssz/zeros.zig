@@ -1,4 +1,5 @@
-// List of root hashes of zero-subtries, up to depth 255.
+//! The code bellow is essentially a port of https://github.com/gballet/ssz.zig
+//! // List of root hashes of zero-subtries, up to depth 255.
 const std = @import("std");
 
 const strs = [_][]const u8{

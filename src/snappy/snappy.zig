@@ -1,3 +1,5 @@
+//! The code bellow is essentially a port of https://github.com/gsquire/zig-snappy
+
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 const crc32 = std.hash.crc.Crc32Iscsi;

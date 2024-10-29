@@ -1,4 +1,4 @@
-//! The code bellow is essentially a port of https://github.com/Raiden1411/zabi
+//! The code bellow is essentially a combination of https://github.com/Raiden1411/zabi and https://github.com/gballet/ssz.zig
 //! to the most recent version of zig with a couple of stylistic changes and support for
 //! other zig types.
 

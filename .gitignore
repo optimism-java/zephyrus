@@ -4,3 +4,4 @@
 .zig-cache
 zig-out
 .vscode
+consensus-spec-tests/
