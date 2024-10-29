@@ -1,6 +1,3 @@
 [submodule "bls"]
 	path = bls
 	url = https://github.com/herumi/bls.git
-[submodule "consensus-spec-tests"]
-	path = consensus-spec-tests
-	url = https://github.com/ethereum/consensus-spec-tests.git
