@@ -43,7 +43,7 @@ fn getLeafDirs(allocator: std.mem.Allocator, path: []const u8) !std.ArrayList([]
     while (index < list.items.len) {
         var hasSubDir = false;
         const currentPath = list.items[index];
-        var dir = try std.fs.cwd().openDir(currentPath, .{});
+        var dir = try std.fs.cwd().openDir(currentPath, .{ .iterate = true });
         defer dir.close();
 
         var iter = dir.iterate();
