@@ -111,4 +111,17 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+
+    const spec: ?bool = b.option(bool, "spec", "whether to run the spec tests");
+    if (spec) |s| {
+        if (s) {
+            const spec_tests = b.addTest(.{
+                .root_source_file = b.path("src/spec_test.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            const run_spec_tests = b.addRunArtifact(spec_tests);
+            test_step.dependOn(&run_spec_tests.step);
+        }
+    }
 }
