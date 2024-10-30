@@ -6,11 +6,13 @@ const constants = @import("../../primitives/constants.zig");
 const preset = @import("../../presets/preset.zig");
 const phase0 = @import("../../consensus/phase0/types.zig");
 const altair = @import("../../consensus/altair/types.zig");
+const electra = @import("../../consensus/electra/types.zig");
 const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const domain_helper = @import("../../consensus/helpers/domain.zig");
 const validator_helper = @import("../../consensus/helpers/validator.zig");
 const signing_root_helper = @import("../../consensus/helpers/signing_root.zig");
 const bls_helper = @import("../../consensus/helpers/bls.zig");
+const balance_helper = @import("../../consensus/helpers/balance.zig");
 const bls = @import("../../bls/bls.zig");
 
 /// isValidDepositSignature verifies that the deposit signature is valid.
@@ -37,6 +39,48 @@ pub fn isValidDepositSignature(pubkey: *const primitives.BLSPubkey, withdrawal_c
     const domain = try domain_helper.computeDomain(constants.DOMAIN_DEPOSIT, null, null, allocator); // Fork-agnostic domain since deposits are valid across forks
     const signing_root = try signing_root_helper.computeSigningRoot(&deposit_message, &domain, allocator);
     return bls_helper.verify(pubkey, &signing_root, signature);
+}
+
+pub fn applyDeposit(
+    state: *consensus.BeaconState,
+    pubkey: *const primitives.BLSPubkey,
+    withdrawal_credentials: *const primitives.Bytes32,
+    amount: u64,
+    signature: *const primitives.BLSSignature,
+    allocator: std.mem.Allocator,
+) !void {
+    var index: isize = -1;
+    for (state.validators(), 0..) |validator, i| {
+        if (std.mem.eql(u8, &validator.pubkey, pubkey)) {
+            index = @intCast(i);
+            break;
+        }
+    }
+
+    if (index == -1) {
+        const is_valid = try isValidDepositSignature(pubkey, withdrawal_credentials, amount, signature, allocator);
+        if (is_valid) {
+            try validator_helper.addValidatorToRegistry(state, pubkey, withdrawal_credentials, amount);
+        }
+    } else {
+        switch (state.*) {
+            .electra => {
+                state.pendingBalanceDeposit()[state.pendingBalanceDeposit().len] = consensus.PendingBalanceDeposit{
+                    .electra = electra.PendingBalanceDeposit{
+                        .index = @intCast(index),
+                        .amount = amount,
+                    },
+                };
+
+                if (validator_helper.isCompoundingWithdrawalCredential(withdrawal_credentials) and validator_helper.hasEth1WithdrawalCredential(&state.validators()[@intCast(index)]) and (try isValidDepositSignature(pubkey, withdrawal_credentials, amount, signature, allocator))) {
+                    validator_helper.switchToCompoundingValidator(state, @intCast(index));
+                }
+            },
+            inline else => {
+                balance_helper.increaseBalance(state, @intCast(index), amount);
+            },
+        }
+    }
 }
 
 test "test isvalidDepositSignature" {

@@ -396,7 +396,7 @@ pub fn slashValidator(state: *consensus.BeaconState, slashed_index: primitives.V
 /// Spec pseudocode definition:
 /// def is_compounding_withdrawal_credential(withdrawal_credentials: Bytes32) -> bool:
 ///     return withdrawal_credentials[:1] == COMPOUNDING_WITHDRAWAL_PREFIX
-pub fn isCompoundingWithdrawalCredential(withdrawal_credentials: primitives.Bytes32) bool {
+pub fn isCompoundingWithdrawalCredential(withdrawal_credentials: *const primitives.Bytes32) bool {
     return withdrawal_credentials[0] == constants.COMPOUNDING_WITHDRAWAL_PREFIX;
 }
 
@@ -411,7 +411,7 @@ pub fn isCompoundingWithdrawalCredential(withdrawal_credentials: primitives.Byte
 ///      return is_compounding_withdrawal_credential(validator.withdrawal_credentials)
 pub fn hasCompoundingWithdrawalCredential(validator: *const consensus.Validator) bool {
     // Check if validator has an 0x02 prefixed "compounding" withdrawal credential
-    return isCompoundingWithdrawalCredential(validator.withdrawal_credentials);
+    return isCompoundingWithdrawalCredential(&validator.withdrawal_credentials);
 }
 
 /// addValidatorToRegistry adds a validator to the validator registry.
@@ -429,7 +429,7 @@ pub fn hasCompoundingWithdrawalCredential(validator: *const consensus.Validator)
 ///     set_or_append_list(state.current_epoch_participation, index, ParticipationFlags(0b0000_0000))
 ///     set_or_append_list(state.inactivity_scores, index, uint64(0))
 ///     state.pending_balance_deposits.append(PendingBalanceDeposit(index=index, amount=amount))  # [New in Electra:EIP7251]
-pub fn addValidatorToRegistry(state: *consensus.BeaconState, pubkey: *const primitives.BLSPubkey, withdrawal_credentials: *primitives.Bytes32, amount: u64) !void {
+pub fn addValidatorToRegistry(state: *consensus.BeaconState, pubkey: *const primitives.BLSPubkey, withdrawal_credentials: *const primitives.Bytes32, amount: u64) !void {
     const index = state.getIndexForNewValidator();
     const validator = consensus.Validator.getValidatorFromDeposit(pubkey, withdrawal_credentials, amount);
     try primitives.setOrAppendList(consensus.Validator, state.validators(), index, &validator);
@@ -457,6 +457,33 @@ pub fn addValidatorToRegistry(state: *consensus.BeaconState, pubkey: *const prim
             };
             try primitives.setOrAppendList(consensus.PendingBalanceDeposit, state.pendingBalanceDeposit(), index, &pending_balance_deposit);
         },
+    }
+}
+
+pub fn hasEth1WithdrawalCredential(validator: *const consensus.Validator) bool {
+    // Check if first byte matches ETH1_ADDRESS_WITHDRAWAL_PREFIX
+    return validator.withdrawal_credentials[0] == constants.ETH1_ADDRESS_WITHDRAWAL_PREFIX;
+}
+
+pub fn queueExcessActiveBalance(state: *consensus.BeaconState, index: primitives.ValidatorIndex) void {
+    const balance = state.balances()[index];
+    if (balance > preset.ActivePreset.get().MIN_ACTIVATION_BALANCE) {
+        const excess_balance = balance - preset.ActivePreset.get().MIN_ACTIVATION_BALANCE;
+        state.balances()[index] = preset.ActivePreset.get().MIN_ACTIVATION_BALANCE;
+        state.pendingBalanceDeposit()[state.pendingBalanceDeposit().len] = consensus.PendingBalanceDeposit{
+            .electra = electra.PendingBalanceDeposit{
+                .index = index,
+                .amount = excess_balance,
+            },
+        };
+    }
+}
+
+pub fn switchToCompoundingValidator(state: *consensus.BeaconState, index: primitives.ValidatorIndex) void {
+    var validator = state.validators()[index];
+    if (hasEth1WithdrawalCredential(&validator)) {
+        validator.withdrawal_credentials[0] = constants.COMPOUNDING_WITHDRAWAL_PREFIX;
+        queueExcessActiveBalance(state, index);
     }
 }
 
