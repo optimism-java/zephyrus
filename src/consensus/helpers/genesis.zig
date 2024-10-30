@@ -13,6 +13,7 @@ const deneb = @import("../../consensus/deneb/types.zig");
 const validator_helper = @import("../../consensus/helpers/validator.zig");
 const balance_helper = @import("../../consensus/helpers/balance.zig");
 const committee_helper = @import("../../consensus/helpers/committee.zig");
+const deposit_helper = @import("../../consensus/helpers/deposit.zig");
 const ssz = @import("../../ssz/ssz.zig");
 
 /// isValidGenesisState verifies the validity of a genesis state.
@@ -105,7 +106,7 @@ pub fn initializeBeaconStateFromEth1(
     eth1_block_hash: primitives.Hash32,
     eth1_timestamp: u64,
     deposits: []const consensus.Deposit,
-    execution_payload_header: ?consensus.ExecutionPayloadHeader,
+    execution_payload_header: ?*const consensus.ExecutionPayloadHeader,
     allocator: std.mem.Allocator,
 ) !consensus.BeaconState {
     if (execution_payload_header == null) {}
@@ -295,7 +296,7 @@ pub fn initializeBeaconStateFromEth1(
         defer deposit_data_list.deinit();
         try deposit_data_list.appendSlice(leaves.items[0 .. index + 1]);
         try ssz.hashTreeRoot(deposit_data_list.items, &state.eth1Data().deposit_root, allocator);
-        processDeposit(&state, &deposit);
+        try deposit_helper.processDeposit(&state, &deposit, allocator);
     }
 
     // Process deposit balance updates
@@ -327,8 +328,8 @@ pub fn initializeBeaconStateFromEth1(
     try ssz.hashTreeRoot(state.validators(), state.genesisValidatorsRootPtr(), allocator);
 
     // Fill in sync committees
-    state.setCurrentSyncCommittee(try committee_helper.getNextSyncCommittee(&state, allocator));
-    state.setNextSyncCommittee(try committee_helper.getNextSyncCommittee(&state, allocator));
+    state.setCurrentSyncCommittee(&(try committee_helper.getNextSyncCommittee(&state, allocator)));
+    state.setNextSyncCommittee(&(try committee_helper.getNextSyncCommittee(&state, allocator)));
 
     if (execution_payload_header != null) {
         // Initialize the execution payload header
@@ -336,10 +337,4 @@ pub fn initializeBeaconStateFromEth1(
     }
 
     return state;
-}
-
-fn processDeposit(state: *consensus.BeaconState, deposit: *const consensus.Deposit) void {
-    const a = state.eth1Data();
-    std.debug.print("Deposit data: {}\n", .{deposit.data});
-    std.debug.print("State data: {}\n", .{a});
 }

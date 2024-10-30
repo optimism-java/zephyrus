@@ -25,8 +25,8 @@ const sha256 = std.crypto.hash.sha2.Sha256;
 ///         else:
 ///              value = hash(value + branch[i])
 ///     return value == root
-pub fn isValidMerkleBranch(leaf: primitives.Bytes32, branch: []const primitives.Bytes32, depth: u64, index: u64, root: primitives.Root) !bool {
-    var value: [32]u8 = leaf;
+pub fn isValidMerkleBranch(leaf: *const primitives.Bytes32, branch: []const primitives.Bytes32, depth: u64, index: u64, root: *const primitives.Root) !bool {
+    var value: [32]u8 = leaf.*;
     var i: u64 = 0;
     while (i < depth) : (i += 1) {
         var combined: [64]u8 = undefined;
@@ -39,7 +39,7 @@ pub fn isValidMerkleBranch(leaf: primitives.Bytes32, branch: []const primitives.
         }
         sha256.hash(&combined, &value, .{});
     }
-    return std.mem.eql(u8, &value, &root);
+    return std.mem.eql(u8, &value, root);
 }
 
 test isValidMerkleBranch {
@@ -48,7 +48,7 @@ test isValidMerkleBranch {
     const root: primitives.Root = undefined;
     const depth: u64 = 0;
     const index: u64 = 0;
-    try std.testing.expect(try isValidMerkleBranch(leaf, &branch, depth, index, root));
+    try std.testing.expect(try isValidMerkleBranch(&leaf, &branch, depth, index, &root));
 }
 
 test "verifyMerkleProof with valid branch" {
@@ -57,5 +57,5 @@ test "verifyMerkleProof with valid branch" {
     const root: primitives.Root = [_]u8{ 228, 209, 245, 144, 152, 7, 227, 251, 129, 176, 248, 115, 30, 139, 1, 35, 21, 112, 168, 110, 176, 175, 25, 181, 52, 215, 85, 95, 22, 63, 166, 194 };
     const depth: u64 = 5;
     const index: u64 = 0;
-    try std.testing.expect(try isValidMerkleBranch(leaf, &branch, depth, index, root));
+    try std.testing.expect(try isValidMerkleBranch(&leaf, &branch, depth, index, &root));
 }

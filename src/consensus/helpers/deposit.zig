@@ -13,6 +13,8 @@ const validator_helper = @import("../../consensus/helpers/validator.zig");
 const signing_root_helper = @import("../../consensus/helpers/signing_root.zig");
 const bls_helper = @import("../../consensus/helpers/bls.zig");
 const balance_helper = @import("../../consensus/helpers/balance.zig");
+const merkle_helper = @import("../../consensus/helpers/merkle.zig");
+const ssz = @import("../../ssz/ssz.zig");
 const bls = @import("../../bls/bls.zig");
 
 /// isValidDepositSignature verifies that the deposit signature is valid.
@@ -41,6 +43,32 @@ pub fn isValidDepositSignature(pubkey: *const primitives.BLSPubkey, withdrawal_c
     return bls_helper.verify(pubkey, &signing_root, signature);
 }
 
+/// applyDeposit applies a deposit to the state.
+///
+/// Spec pseudocode definition:
+/// def apply_deposit(state: BeaconState,
+///                   pubkey: BLSPubkey,
+///                   withdrawal_credentials: Bytes32,
+///                   amount: uint64,
+///                   signature: BLSSignature) -> None:
+///     validator_pubkeys = [v.pubkey for v in state.validators]
+///     if pubkey not in validator_pubkeys:
+///         # Verify the deposit signature (proof of possession) which is not checked by the deposit contract
+///         if is_valid_deposit_signature(pubkey, withdrawal_credentials, amount, signature):
+///             add_validator_to_registry(state, pubkey, withdrawal_credentials, amount)
+///     else:
+///         # Increase balance by deposit amount
+///         index = ValidatorIndex(validator_pubkeys.index(pubkey))
+///         state.pending_balance_deposits.append(
+///             PendingBalanceDeposit(index=index, amount=amount)
+///         )  # [Modified in Electra:EIP7251]
+///         # Check if valid deposit switch to compounding credentials
+///         if (
+///             is_compounding_withdrawal_credential(withdrawal_credentials)
+///             and has_eth1_withdrawal_credential(state.validators[index])
+///             and is_valid_deposit_signature(pubkey, withdrawal_credentials, amount, signature)
+///         ):
+///             switch_to_compounding_validator(state, index)
 pub fn applyDeposit(
     state: *consensus.BeaconState,
     pubkey: *const primitives.BLSPubkey,
@@ -81,6 +109,44 @@ pub fn applyDeposit(
             },
         }
     }
+}
+
+/// processDeposit processes `deposit` by adding the deposited amount to the validator's balance.
+///
+/// Spec pseudocode definition:
+/// def process_deposit(state: BeaconState, deposit: Deposit) -> None:
+///     # Verify the Merkle branch
+///     assert is_valid_merkle_branch(
+///         leaf=hash_tree_root(deposit.data),
+///         branch=deposit.proof,
+///         depth=DEPOSIT_CONTRACT_TREE_DEPTH + 1,  # Add 1 for the List length mix-in
+///         index=state.eth1_deposit_index,
+///         root=state.eth1_data.deposit_root,
+///     )
+///
+///     # Deposits must be processed in order
+///     state.eth1_deposit_index += 1
+///
+///     apply_deposit(
+///         state=state,
+///         pubkey=deposit.data.pubkey,
+///         withdrawal_credentials=deposit.data.withdrawal_credentials,
+///         amount=deposit.data.amount,
+///         signature=deposit.data.signature,
+///     )
+pub fn processDeposit(state: *consensus.BeaconState, deposit: *const consensus.Deposit, allocator: std.mem.Allocator) !void {
+    // Verify the Merkle branch
+    var data_root: primitives.Bytes32 = undefined;
+    try ssz.hashTreeRoot(&deposit.data, &data_root, allocator);
+    const is_valid = try merkle_helper.isValidMerkleBranch(&data_root, &deposit.proof, constants.DEPOSIT_CONTRACT_TREE_DEPTH + 1, state.eth1DepositIndex(), &state.eth1Data().deposit_root);
+    if (!is_valid) {
+        return error.InvalidDepositProof;
+    }
+
+    // Deposits must be processed in order
+    state.setEth1DepositIndex(state.eth1DepositIndex() + 1);
+
+    try applyDeposit(state, &deposit.data.pubkey, &deposit.data.withdrawal_credentials, deposit.data.amount, &deposit.data.signature, allocator);
 }
 
 test "test isvalidDepositSignature" {

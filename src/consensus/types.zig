@@ -567,7 +567,13 @@ pub const BeaconState = union(primitives.ForkType) {
     deneb: capella.BeaconState,
     electra: electra.BeaconState,
 
-    pub fn setLatestExecutionPayloadHeader(self: *BeaconState, header: ExecutionPayloadHeader) void {
+    pub fn setEth1DepositIndex(self: *BeaconState, index: u64) void {
+        switch (self.*) {
+            inline else => |*state| state.eth1_deposit_index = index,
+        }
+    }
+
+    pub fn setLatestExecutionPayloadHeader(self: *BeaconState, header: *const ExecutionPayloadHeader) void {
         const supported_forks = [_]primitives.ForkType{
             .bellatrix,
             .capella,
@@ -577,30 +583,13 @@ pub const BeaconState = union(primitives.ForkType) {
 
         inline for (supported_forks) |f| {
             if (std.meta.activeTag(self.*) == f) {
-                @field(self, @tagName(f)).latest_execution_payload_header = header;
+                @field(self, @tagName(f)).latest_execution_payload_header = header.*;
                 return;
             }
         }
     }
 
-    pub fn setCurrentSyncCommittee(self: *BeaconState, sync_committee: SyncCommittee) void {
-        const supported_forks = [_]primitives.ForkType{
-            .altair,
-            .bellatrix,
-            .capella,
-            .deneb,
-            .electra,
-        };
-
-        inline for (supported_forks) |f| {
-            if (std.meta.activeTag(self.*) == f) {
-                @field(self, @tagName(f)).current_sync_committee = sync_committee;
-                return;
-            }
-        }
-    }
-
-    pub fn setNextSyncCommittee(self: *BeaconState, sync_committee: SyncCommittee) void {
+    pub fn setCurrentSyncCommittee(self: *BeaconState, sync_committee: *const SyncCommittee) void {
         const supported_forks = [_]primitives.ForkType{
             .altair,
             .bellatrix,
@@ -611,52 +600,73 @@ pub const BeaconState = union(primitives.ForkType) {
 
         inline for (supported_forks) |f| {
             if (std.meta.activeTag(self.*) == f) {
-                @field(self, @tagName(f)).next_sync_committee = sync_committee;
+                @field(self, @tagName(f)).current_sync_committee = sync_committee.*;
                 return;
             }
         }
     }
 
-    pub fn forkedBeaconState(self: *BeaconState) *BeaconState {
-        return self;
+    /// setNextSyncCommittee sets the next sync committee.
+    pub fn setNextSyncCommittee(self: *BeaconState, sync_committee: *const SyncCommittee) void {
+        const supported_forks = [_]primitives.ForkType{
+            .altair,
+            .bellatrix,
+            .capella,
+            .deneb,
+            .electra,
+        };
+
+        inline for (supported_forks) |f| {
+            if (std.meta.activeTag(self.*) == f) {
+                @field(self, @tagName(f)).next_sync_committee = sync_committee.*;
+                return;
+            }
+        }
     }
 
+    /// eth1Data returns the eth1 data of the given state.
     pub fn eth1Data(self: *BeaconState) *Eth1Data {
         return switch (self.*) {
             inline else => |*state| &state.eth1_data,
         };
     }
 
+    /// genesisTime returns the genesis time of the given state.
     pub fn genesisTime(self: *const BeaconState) u64 {
         return switch (self.*) {
             inline else => |state| state.genesis_time,
         };
     }
 
+    /// slashings returns the slashings of the given state.
     pub fn slashings(self: *const BeaconState) []primitives.Gwei {
         return switch (self.*) {
             inline else => |state| state.slashings,
         };
     }
 
+    /// balances returns the balances of the given state.
     pub fn balances(self: *const BeaconState) []primitives.Gwei {
         return switch (self.*) {
             inline else => |state| state.balances,
         };
     }
 
+    /// genesisValidatorsRoot returns the genesis validators root of the given state.
     pub fn genesisValidatorsRoot(self: *const BeaconState) primitives.Root {
         return switch (self.*) {
             inline else => |state| state.genesis_validators_root,
         };
     }
 
+    /// genesisValidatorsRootPtr returns a pointer to the genesis validators root of the given state.
     pub fn genesisValidatorsRootPtr(self: *BeaconState) *primitives.Root {
         return switch (self.*) {
             inline else => |*state| &state.genesis_validators_root,
         };
     }
 
+    /// fork returns the fork of the given state.
     pub fn fork(self: *const BeaconState) Fork {
         return switch (self.*) {
             inline else => |state| state.fork,
@@ -695,6 +705,7 @@ pub const BeaconState = union(primitives.ForkType) {
         };
     }
 
+    /// finalizedCheckpointEpoch returns the epoch of the finalized checkpoint of the given state.
     pub fn finalizedCheckpointEpoch(self: *const BeaconState) primitives.Epoch {
         return switch (self.*) {
             inline else => |state| state.finalized_checkpoint.epoch,
@@ -710,6 +721,7 @@ pub const BeaconState = union(primitives.ForkType) {
         return @as(primitives.ValidatorIndex, self.validators().len);
     }
 
+    /// previousEpochParticipation returns the previous epoch participation of the given state.
     pub fn previousEpochParticipation(self: *const BeaconState) []u8 {
         return switch (self.*) {
             .phase0 => @panic("previous_epoch_participation is not supported for phase0"),
@@ -717,6 +729,7 @@ pub const BeaconState = union(primitives.ForkType) {
         };
     }
 
+    /// currentEpochParticipation returns the current epoch participation of the given state.
     pub fn currentEpochParticipation(self: *const BeaconState) []u8 {
         return switch (self.*) {
             .phase0 => @panic("current_epoch_participation is not supported for phase0"),
@@ -724,6 +737,7 @@ pub const BeaconState = union(primitives.ForkType) {
         };
     }
 
+    /// inactivityScores returns the inactivity scores of the given state.
     pub fn inactivityScores(self: *const BeaconState) []u64 {
         return switch (self.*) {
             .phase0 => @panic("inactivity_scores is not supported for phase0"),
@@ -731,10 +745,18 @@ pub const BeaconState = union(primitives.ForkType) {
         };
     }
 
+    /// pendingBalanceDeposits returns the pending balance deposits of the given state.
     pub fn pendingBalanceDeposit(self: *const BeaconState) []PendingBalanceDeposit {
         return switch (self.*) {
             .phase0, .altair, .bellatrix, .capella, .deneb => @panic("pending_balance_deposits is not supported for phase0"),
             inline else => |state| state.pending_balance_deposits,
+        };
+    }
+
+    /// eth1DepositIndex returns the eth1 deposit index of the given state.
+    pub fn eth1DepositIndex(self: *const BeaconState) u64 {
+        return switch (self.*) {
+            inline else => |state| state.eth1_deposit_index,
         };
     }
 };
