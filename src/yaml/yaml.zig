@@ -1,5 +1,3 @@
-//! The code bellow is essentially a port of https://github.com/kubkon/zig-yaml
-
 const std = @import("std");
 const assert = std.debug.assert;
 const math = std.math;
@@ -29,6 +27,7 @@ pub const Map = std.StringArrayHashMap(Value);
 pub const Value = union(enum) {
     empty,
     int: i64,
+    uint: u64,
     float: f64,
     string: []const u8,
     list: List,
@@ -37,6 +36,11 @@ pub const Value = union(enum) {
     pub fn asInt(self: Value) !i64 {
         if (self != .int) return error.TypeMismatch;
         return self.int;
+    }
+
+    pub fn asUint(self: Value) !u64 {
+        if (self != .uint) return error.TypeMismatch;
+        return self.uint;
     }
 
     pub fn asFloat(self: Value) !f64 {
@@ -90,6 +94,7 @@ pub const Value = union(enum) {
         switch (self) {
             .empty => return,
             .int => |int| return writer.print("{}", .{int}),
+            .uint => |uint| return writer.print("{}", .{uint}),
             .float => |float| return writer.print("{d}", .{float}),
             .string => |string| return writer.print("{s}", .{string}),
             .list => |list| {
@@ -205,8 +210,15 @@ pub const Value = union(enum) {
             const raw = tree.getRaw(node.start, node.end);
 
             try_int: {
-                const int = std.fmt.parseInt(i64, raw, 0) catch break :try_int;
-                return Value{ .int = int };
+                if (std.fmt.parseUnsigned(u64, raw, 0)) |uint| {
+                    if (uint > math.maxInt(i64)) {
+                        return Value{ .uint = uint };
+                    }
+                    return Value{ .int = @intCast(uint) };
+                } else |_| {
+                    const int = std.fmt.parseInt(i64, raw, 0) catch break :try_int;
+                    return Value{ .int = int };
+                }
             }
 
             try_float: {
@@ -393,7 +405,13 @@ pub const Yaml = struct {
 
     fn parseValue(self: *Yaml, comptime T: type, value: Value) Error!T {
         return switch (@typeInfo(T)) {
-            .int => math.cast(T, try value.asInt()) orelse return error.Overflow,
+            .int => {
+                return switch (value) {
+                    .int => math.cast(T, try value.asInt()) orelse return error.Overflow,
+                    .uint => math.cast(T, try value.asUint()) orelse return error.Overflow,
+                    else => return error.TypeMismatch,
+                };
+            },
             .float => if (value.asFloat()) |float| {
                 return math.lossyCast(T, float);
             } else |_| {
