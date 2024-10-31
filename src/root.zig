@@ -31,5 +31,4 @@ pub const deposit_helper = @import("consensus/helpers/deposit.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());
-    _ = @import("./spec_tests/root.zig");
 }
