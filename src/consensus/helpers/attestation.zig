@@ -64,11 +64,11 @@ pub fn getIndexedAttestation(state: *const consensus.BeaconState, attestation: *
 ///         # Surround vote
 ///        (data_1.source.epoch < data_2.source.epoch and data_2.target.epoch < data_1.target.epoch)
 ///     )
-pub fn isSlashableAttestationData(data1: consensus.AttestationData, data2: consensus.AttestationData) bool {
+pub fn isSlashableAttestationData(data1: *const consensus.AttestationData, data2: *const consensus.AttestationData) bool {
     // Check if `data_1` and `data_2` are slashable according to Casper FFG rules.
     return (
     // Double vote
-        (!std.meta.eql(data1, data2) and data1.target.epoch == data2.target.epoch) or
+        (!std.meta.eql(data1.*, data2.*) and data1.target.epoch == data2.target.epoch) or
         // Surround vote
         (data1.source.epoch < data2.source.epoch and data2.target.epoch < data1.target.epoch));
 }
@@ -202,7 +202,7 @@ test "test isSlashableAttestationData" {
         },
     };
 
-    try std.testing.expectEqual(isSlashableAttestationData(data1, data2), false);
+    try std.testing.expectEqual(isSlashableAttestationData(&data1, &data2), false);
 
     const data3 = consensus.AttestationData{
         .slot = 0,
@@ -232,8 +232,8 @@ test "test isSlashableAttestationData" {
         },
     };
 
-    try std.testing.expectEqual(isSlashableAttestationData(data3, data4), true);
-    try std.testing.expectEqual(isSlashableAttestationData(data1, data4), false);
+    try std.testing.expectEqual(isSlashableAttestationData(&data3, &data4), true);
+    try std.testing.expectEqual(isSlashableAttestationData(&data1, &data4), false);
 }
 
 test "test getCommitteeIndices" {

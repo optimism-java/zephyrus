@@ -58,7 +58,7 @@ pub fn getCommitteeCountPerSlot(state: *const consensus.BeaconState, epoch: prim
 ///     end = (len(indices) * uint64(index + 1)) // count
 ///     return [indices[compute_shuffled_index(uint64(i), uint64(len(indices)), seed)] for i in range(start, end)]
 /// Note: Caller is responsible for freeing the returned slice.
-pub fn computeCommittee(indices: []const primitives.ValidatorIndex, seed: primitives.Bytes32, index: u64, count: u64, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
+pub fn computeCommittee(indices: []const primitives.ValidatorIndex, seed: *const primitives.Bytes32, index: u64, count: u64, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
     const len = indices.len;
     const start = @divFloor(len * index, count);
     const end = @divFloor(len * (index + 1), count);
@@ -102,7 +102,7 @@ pub fn getBeaconCommittee(state: *const consensus.BeaconState, slot: primitives.
     const seed = seed_helper.getSeed(state, epoch, constants.DOMAIN_BEACON_ATTESTER);
     const i = @mod(slot, preset.ActivePreset.get().SLOTS_PER_EPOCH) * committeesPerSlot + index;
     const count = committeesPerSlot * preset.ActivePreset.get().SLOTS_PER_EPOCH;
-    return computeCommittee(indices, seed, i, count, allocator);
+    return computeCommittee(indices, &seed, i, count, allocator);
 }
 
 /// getBeaconProposerIndex returns the beacon proposer index for the current epoch.
@@ -126,7 +126,7 @@ pub fn getBeaconProposerIndex(state: *const consensus.BeaconState, allocator: st
     sha256.hash(seed_origin, &seed, .{});
     const indices = try validator_helper.getActiveValidatorIndices(state, epoch, allocator);
     defer allocator.free(indices);
-    return validator_helper.computeProposerIndex(state, indices, seed);
+    return validator_helper.computeProposerIndex(state, indices, &seed);
 }
 
 /// getNextSyncCommitteeIndices returns the next sync committee indices.
@@ -171,7 +171,7 @@ pub fn getNextSyncCommitteeIndices(state: *const consensus.BeaconState, allocato
     var i: usize = 0;
 
     while (count < preset.ActivePreset.get().SYNC_COMMITTEE_SIZE) {
-        const shuffled_index = try shuffle_helper.computeShuffledIndex(@as(u64, @mod(i, active_validator_count)), active_validator_count, seed);
+        const shuffled_index = try shuffle_helper.computeShuffledIndex(@as(u64, @mod(i, active_validator_count)), active_validator_count, &seed);
         const candidate_index = active_validator_indices[shuffled_index];
         const seed_origin = seed ++ std.mem.asBytes(&@as(u64, @divFloor(i, 32)));
         var seed_hash: primitives.Bytes32 = undefined;
@@ -317,7 +317,7 @@ test "test computeCommittee" {
     const seed = .{1} ** 32;
     const index = 1;
     const count = 3;
-    const committee = try computeCommittee(&indices, seed, index, count, std.testing.allocator);
+    const committee = try computeCommittee(&indices, &seed, index, count, std.testing.allocator);
     defer std.testing.allocator.free(committee);
     try std.testing.expectEqual(3, committee.len);
     try std.testing.expectEqual(9, committee[0]);

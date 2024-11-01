@@ -37,7 +37,7 @@ const sha256 = std.crypto.hash.sha2.Sha256;
 ///     index = flip if bit else index
 ///
 ///     return index
-pub fn computeShuffledIndex(index: u64, index_count: u64, seed: primitives.Bytes32) !u64 {
+pub fn computeShuffledIndex(index: u64, index_count: u64, seed: *const primitives.Bytes32) !u64 {
     if (index >= index_count) return error.IndexOutOfBounds;
 
     var current_index = index;
@@ -46,7 +46,7 @@ pub fn computeShuffledIndex(index: u64, index_count: u64, seed: primitives.Bytes
     for (@as(u64, 0)..preset.ActivePreset.get().SHUFFLE_ROUND_COUNT) |current_round| {
         // Generate round seed
         var round_seed: primitives.Bytes32 = undefined;
-        sha256.hash(seed ++ &[_]u8{@as(u8, @intCast(current_round))}, &round_seed, .{});
+        sha256.hash(seed.* ++ &[_]u8{@as(u8, @intCast(current_round))}, &round_seed, .{});
 
         // Calculate pivot and flip
         const pivot = @mod(std.mem.readInt(u64, round_seed[0..8], .little), index_count);
@@ -56,7 +56,7 @@ pub fn computeShuffledIndex(index: u64, index_count: u64, seed: primitives.Bytes
         // Generate source seed
         var source_seed: primitives.Bytes32 = undefined;
         const position_div_256 = @as(u32, @intCast(@divFloor(position, 256)));
-        sha256.hash(seed ++ &[_]u8{@as(u8, @intCast(current_round))} ++ std.mem.toBytes(position_div_256), &source_seed, .{});
+        sha256.hash(seed.* ++ &[_]u8{@as(u8, @intCast(current_round))} ++ std.mem.toBytes(position_div_256), &source_seed, .{});
 
         // Determine bit value and update current_index
         const byte_index = @divFloor(@mod(position, 256), 8);
@@ -76,12 +76,12 @@ test "test computeShuffledIndex" {
     const index_count = 10;
     const seed = .{3} ** 32;
     const index = 5;
-    const shuffledIndex = try computeShuffledIndex(index, index_count, seed);
+    const shuffledIndex = try computeShuffledIndex(index, index_count, &seed);
     try std.testing.expectEqual(7, shuffledIndex);
 
     const index_count1 = 10000000;
     const seed1 = .{4} ** 32;
     const index1 = 5776655;
-    const shuffledIndex1 = try computeShuffledIndex(index1, index_count1, seed1);
+    const shuffledIndex1 = try computeShuffledIndex(index1, index_count1, &seed1);
     try std.testing.expectEqual(3446028, shuffledIndex1);
 }

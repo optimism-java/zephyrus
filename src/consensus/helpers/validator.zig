@@ -148,7 +148,7 @@ pub fn getValidatorChurnLimit(state: *const consensus.BeaconState, allocator: st
 ///      if effective_balance * MAX_RANDOM_BYTE >= MAX_EFFECTIVE_BALANCE_ELECTRA * random_byte:
 ///          return candidate_index
 ///      i += 1
-pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []const primitives.ValidatorIndex, seed: primitives.Bytes32) !primitives.ValidatorIndex {
+pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []const primitives.ValidatorIndex, seed: *const primitives.Bytes32) !primitives.ValidatorIndex {
     if (indices.len == 0) return error.EmptyValidatorIndices;
     const MAX_RANDOM_BYTE: u8 = std.math.maxInt(u8);
     var i: u64 = 0;
@@ -159,7 +159,7 @@ pub fn computeProposerIndex(state: *const consensus.BeaconState, indices: []cons
         const candidate_index = indices[@intCast(shuffled_index)];
         var hash_result: [32]u8 = undefined;
         var seed_plus: [40]u8 = undefined;
-        @memcpy(seed_plus[0..32], &seed);
+        @memcpy(seed_plus[0..32], seed);
         std.mem.writeInt(u64, seed_plus[32..40], @divFloor(i, 32), .little);
         std.log.debug("seed_plus: {any}, i: {}\n", .{ seed_plus, i });
         std.crypto.hash.sha2.Sha256.hash(&seed_plus, &hash_result, .{});
@@ -937,7 +937,8 @@ test "test computeProposerIndex" {
     };
 
     const validator_index = [_]primitives.ValidatorIndex{ 0, 1 };
-    const proposer_index = try computeProposerIndex(&state, &validator_index, .{1} ** 32);
+    const seed = .{1} ** 32;
+    const proposer_index = try computeProposerIndex(&state, &validator_index, &seed);
     try std.testing.expectEqual(0, proposer_index);
 }
 

@@ -21,7 +21,7 @@ const validator_helper = @import("../../consensus/helpers/validator.zig");
 ///     Math safe up to ~10B ETH, after which this overflows uint64.
 ///    """
 ///    return Gwei(max(EFFECTIVE_BALANCE_INCREMENT, sum([state.validators[index].effective_balance for index in indices])))
-pub fn getTotalBalance(state: *const consensus.BeaconState, indices: std.AutoHashMap(primitives.ValidatorIndex, void)) primitives.Gwei {
+pub fn getTotalBalance(state: *const consensus.BeaconState, indices: *const std.AutoHashMap(primitives.ValidatorIndex, void)) primitives.Gwei {
     var total: primitives.Gwei = 0;
     var iterator = indices.keyIterator();
     while (iterator.next()) |index| {
@@ -53,7 +53,7 @@ pub fn getTotalActiveBalance(state: *const consensus.BeaconState, allocator: std
         try indices_set.put(index, {});
     }
 
-    return getTotalBalance(state, indices_set);
+    return getTotalBalance(state, &indices_set);
 }
 
 /// increaseBalance increases the validator balance at index `index` by `delta`.
@@ -185,7 +185,7 @@ test "test getTotalBalance" {
     for (indices) |index| {
         indices_map.put(index, {}) catch unreachable;
     }
-    const total = getTotalBalance(&state, indices_map);
+    const total = getTotalBalance(&state, &indices_map);
     try std.testing.expectEqual(
         220000000000,
         total,
