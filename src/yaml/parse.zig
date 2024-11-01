@@ -1,7 +1,3 @@
-//! The code bellow is essentially a port of https://github.com/kubkon/zig-yaml
-//! to the most recent version of zig with a couple of stylistic changes and support for
-//! json yaml.
-
 const std = @import("std");
 const assert = std.debug.assert;
 const log = std.log.scoped(.parse);
@@ -386,7 +382,8 @@ const Parser = struct {
 
         log.debug("(doc) begin {s}@{d}", .{ @tagName(self.tree.tokens[node.base.start].id), node.base.start });
         // json format yaml
-        const is_one_line: bool = if (self.eatToken(.flow_map_start, &.{})) |doc_pos| is_one_line: {
+
+        const is_json_format: bool = if (self.eatToken(.flow_map_start, &.{})) |doc_pos| is_one_line: {
             if (self.getCol(doc_pos) > 0) return error.MalformedYaml;
             if (self.eatToken(.tag, &.{ .new_line, .comment })) |_| {
                 node.directive = try self.expectToken(.literal, &.{ .new_line, .comment });
@@ -394,8 +391,8 @@ const Parser = struct {
             break :is_one_line true;
         } else false;
 
-        if (is_one_line) {
-            return self.one_line_doc(node);
+        if (is_json_format) {
+            return self.handle_json_format(node);
         }
 
         // Parse header
@@ -443,9 +440,9 @@ const Parser = struct {
         return &node.base;
     }
 
-    fn one_line_doc(self: *Parser, node: *Node.Doc) ParseError!*Node {
+    fn handle_json_format(self: *Parser, node: *Node.Doc) ParseError!*Node {
         // Parse value
-        node.value = try self.value();
+        node.value = try self.json_format_map();
         if (node.value == null) {
             self.token_it.seekBy(-1);
         }
@@ -499,7 +496,6 @@ const Parser = struct {
             if (self.getCol(key_pos) < col) {
                 break;
             }
-
             const key = self.token_it.next() orelse return error.UnexpectedEof;
             switch (key.id) {
                 .literal => {},
@@ -513,7 +509,88 @@ const Parser = struct {
                     continue;
                 },
             }
+            log.debug("(map) key {s}@{d}", .{ self.tree.getRaw(key_pos, key_pos), key_pos });
 
+            // Separator
+            _ = try self.expectToken(.map_value_ind, &.{ .new_line, .comment });
+
+            // Parse value
+            const val = try self.value();
+            errdefer if (val) |v| {
+                v.deinit(self.allocator);
+            };
+
+            if (val) |v| {
+                if (self.getCol(v.start) < self.getCol(key_pos)) {
+                    return error.MalformedYaml;
+                }
+                if (v.cast(Node.Value)) |_| {
+                    if (self.getCol(v.start) == self.getCol(key_pos)) {
+                        return error.MalformedYaml;
+                    }
+                }
+            }
+
+            try node.values.append(self.allocator, .{
+                .key = key_pos,
+                .value = val,
+            });
+        }
+
+        node.base.end = self.token_it.pos - 1;
+
+        log.debug("(map) end {s}@{d}", .{ @tagName(self.tree.tokens[node.base.end].id), node.base.end });
+
+        return &node.base;
+    }
+
+    fn json_format_map(self: *Parser) ParseError!*Node {
+        const node = try self.allocator.create(Node.Map);
+        errdefer self.allocator.destroy(node);
+        node.* = .{};
+        node.base.tree = self.tree;
+        node.base.start = self.token_it.pos;
+        errdefer {
+            for (node.values.items) |entry| {
+                if (entry.value) |val| {
+                    val.deinit(self.allocator);
+                }
+            }
+            node.values.deinit(self.allocator);
+        }
+
+        log.debug("(map) begin {s}@{d}", .{ @tagName(self.tree.tokens[node.base.start].id), node.base.start });
+
+        const col = self.getCol(node.base.start);
+        var currentNewLine = self.getLine(node.base.start);
+
+        while (true) {
+            self.eatCommentsAndSpace(&.{});
+
+            // Parse key
+            const key_pos = self.token_it.pos;
+            if (self.getCol(key_pos) < col) {
+                // multiline cases, see validator.txt in test
+                const newLine = self.getLine(key_pos);
+                if (newLine > currentNewLine) {
+                    currentNewLine = newLine;
+                } else {
+                    break;
+                }
+            }
+            const key = self.token_it.next() orelse return error.UnexpectedEof;
+            switch (key.id) {
+                .literal => {},
+                .doc_start, .doc_end, .eof => {
+                    self.token_it.seekBy(-1);
+                    break;
+                },
+                else => {
+                    // TODO key not being a literal
+                    // return error.Unhandled;
+                    continue;
+                },
+            }
             log.debug("(map) key {s}@{d}", .{ self.tree.getRaw(key_pos, key_pos), key_pos });
 
             // Separator
