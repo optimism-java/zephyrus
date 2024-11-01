@@ -9,10 +9,6 @@ const Yaml = @import("../../yaml/yaml.zig").Yaml;
 const gpa = testing.allocator;
 
 /// Loads and parses a YAML file into a Yaml object
-/// Parameters:
-///   file_path: Path to the YAML file to load
-/// Returns:
-///   Parsed Yaml object or error
 fn loadFromFile(file_path: []const u8) !Yaml {
     const file = try std.fs.cwd().openFile(file_path, .{});
     defer file.close();
@@ -26,10 +22,68 @@ fn loadFromFile(file_path: []const u8) !Yaml {
 const Roots = struct {
     root: [32]u8,
 };
+
+const StructMultiPhase = union {
+    Attestation: types.Attestation,
+    BeaconBlockBody: types.BeaconBlockBody,
+    BeaconState: types.BeaconState,
+    BlobIdentifier: types.BlobIdentifier,
+    BlobSidecar: types.BlobSidecar,
+    BLSToExecutionChange: types.BLSToExecutionChange,
+    ConsolidationRequest: types.ConsolidationRequest,
+    ContributionAndProof: types.ContributionAndProof,
+    DepositRequest: types.DepositRequest,
+    ExecutionPayload: types.ExecutionPayload,
+    ExecutionPayloadHeader: types.ExecutionPayloadHeader,
+    HistoricalSummary: types.HistoricalSummary,
+    LightClientBootstrap: types.LightClientBootstrap,
+    LightClientFinalityUpdate: types.LightClientFinalityUpdate,
+    LightClientHeader: types.LightClientHeader,
+    LightClientOptimisticUpdate: types.LightClientOptimisticUpdate,
+    LightClientUpdate: types.LightClientUpdate,
+    PendingBalanceDeposit: types.PendingBalanceDeposit,
+    PendingConsolidation: types.PendingConsolidation,
+    PendingPartialWithdrawal: types.PendingPartialWithdrawal,
+    PowBlock: types.PowBlock,
+    SignedBLSToExecutionChange: types.SignedBLSToExecutionChange,
+    SignedContributionAndProof: types.SignedContributionAndProof,
+    SignedVoluntaryExit: types.SignedVoluntaryExit,
+    SyncAggregate: types.SyncAggregate,
+    SyncCommittee: types.SyncCommittee,
+    SyncCommitteeContribution: types.SyncCommitteeContribution,
+    SyncCommitteeMessage: types.SyncCommitteeMessage,
+    Withdrawal: types.Withdrawal,
+    WithdrawalRequest: types.WithdrawalRequest,
+};
+
 // test cases for all phases
 const CommonUnion = union {
+    // AggregateAndProof: types.AggregateAndProof,
+    // AttestationData: types.AttestationData,
+    // AttesterSlashing: types.AttesterSlashing,
+    // BeaconBlock: types.BeaconBlock,
+    // BeaconBlockHeader: types.BeaconBlockHeader,
+    Checkpoint: types.Checkpoint,
+    // Deposit: types.Deposit,
+    // DepositData: types.DepositData,
+    // DepositMessage: types.DepositMessage,
+    // Eth1Block: types.Eth1Block,
+    // Eth1Data: types.Eth1Data,
     Fork: types.Fork,
+    ForkData: types.ForkData,
+    // HistoricalBatch: types.HistoricalBatch,
+    // IndexedAttestation: types.IndexedAttestation,
+    // PendingAttestation: types.PendingAttestation,
+    // ProposerSlashing: types.ProposerSlashing,
+    // SignedBeaconBlock: types.SignedBeaconBlock,
+    // SignedBeaconBlockHeader: types.SignedBeaconBlockHeader,
+    // SigningData: types.SigningData,
+    SyncAggregatorSelectionData: types.SyncAggregatorSelectionData, // only exist in altair or later
+    // Validator: types.Validator,
+    VoluntaryExit: types.VoluntaryExit,
 };
+
+const forkDirs = [_][]const u8{ "phase0", "altair", "bellatrix", "capella", "deneb", "electra" };
 
 test "ssz static" {
     const testPath = "consensus-spec-tests/tests/mainnet";
@@ -38,30 +92,31 @@ test "ssz static" {
     inline for (fields) |field| {
         const fieldType = field.type;
         const fieldName = field.name;
-        const ssz_type_path = try std.fmt.allocPrint(gpa1, "{s}/phase0/ssz_static/{s}", .{ testPath, fieldName });
+        for (forkDirs) |fork| {
+            const ssz_type_path = try std.fmt.allocPrint(gpa1, "{s}/{s}/ssz_static/{s}", .{ testPath, fork, fieldName });
 
-        var dirs = try getLeafDirs(gpa1, ssz_type_path);
-
-        // deinit the dirs array
-        defer {
-            for (dirs.items) |item| {
-                gpa1.free(item);
+            var dirs = getLeafDirs(gpa1, ssz_type_path) catch |err| {
+                if (err == error.FileNotFound) {
+                    continue;
+                }
+                return err;
+            };
+            // deinit the dirs array
+            defer {
+                for (dirs.items) |item| {
+                    gpa1.free(item);
+                }
+                dirs.deinit();
             }
-            dirs.deinit();
-        }
 
-        for (dirs.items) |dir| {
-            try testSSZStatic(dir, fieldType);
+            for (dirs.items) |dir| {
+                try testSSZStatic(dir, fieldType);
+            }
         }
     }
 }
 
 /// Recursively finds all leaf directories (directories with no subdirectories) starting from the given path
-/// Parameters:
-///   allocator: Memory allocator for dynamic allocations
-///   path: Starting directory path to search from
-/// Returns:
-///   ArrayList containing paths to all leaf directories
 fn getLeafDirs(allocator: std.mem.Allocator, path: []const u8) !std.ArrayList([]const u8) {
     var leafDirs = std.ArrayList([]const u8).init(allocator);
     // defer leafDirs.deinit();
@@ -101,12 +156,6 @@ fn getLeafDirs(allocator: std.mem.Allocator, path: []const u8) !std.ArrayList([]
 }
 
 /// Tests SSZ (Simple Serialize) static functionality by performing:
-/// 1. YAML parsing
-/// 2. Hash tree root verification
-/// 3. SSZ encoding/decoding with snappy compression
-/// Parameters:
-///   path: Directory path containing test files
-///   t: Type to test SSZ operations against
 fn testSSZStatic(path: []const u8, t: type) !void {
     // parse from yaml
     const valueFile = try std.fmt.allocPrint(testing.allocator, "{s}/value.yaml", .{path});
