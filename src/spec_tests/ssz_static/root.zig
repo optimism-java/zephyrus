@@ -23,7 +23,7 @@ const Roots = struct {
     root: [32]u8,
 };
 
-const structMultiPhase = union {
+const StructMultiPhase = union {
     Attestation: types.Attestation,
     BeaconBlockBody: types.BeaconBlockBody,
     BeaconState: types.BeaconState,
@@ -56,12 +56,8 @@ const structMultiPhase = union {
     WithdrawalRequest: types.WithdrawalRequest,
 };
 
-const altair = union {
-    SyncAggregatorSelectionData: types.SyncAggregatorSelectionData,
-};
-
 // test cases for all phases
-const commonUnion = union {
+const CommonUnion = union {
     // AggregateAndProof: types.AggregateAndProof,
     // AttestationData: types.AttestationData,
     // AttesterSlashing: types.AttesterSlashing,
@@ -87,16 +83,16 @@ const commonUnion = union {
     VoluntaryExit: types.VoluntaryExit,
 };
 
-const forks = [_][]const u8{ "phase0", "altair", "bellatrix", "capella", "deneb", "electra" };
+const forkDirs = [_][]const u8{ "phase0", "altair", "bellatrix", "capella", "deneb", "electra" };
 
 test "ssz static" {
     const testPath = "consensus-spec-tests/tests/mainnet";
     const gpa1 = testing.allocator;
-    const fields = @typeInfo(commonUnion).@"union".fields;
+    const fields = @typeInfo(CommonUnion).@"union".fields;
     inline for (fields) |field| {
         const fieldType = field.type;
         const fieldName = field.name;
-        for (forks) |fork| {
+        for (forkDirs) |fork| {
             const ssz_type_path = try std.fmt.allocPrint(gpa1, "{s}/{s}/ssz_static/{s}", .{ testPath, fork, fieldName });
 
             var dirs = getLeafDirs(gpa1, ssz_type_path) catch |err| {
