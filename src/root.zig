@@ -29,6 +29,7 @@ pub const bls_helper = @import("consensus/helpers/bls.zig");
 pub const bls = @import("./bls/bls.zig");
 pub const deposit_helper = @import("consensus/helpers/deposit.zig");
 pub const voluntary_exit_helper = @import("consensus/helpers/voluntary_exit.zig");
+pub const justification_finalization_helper = @import("consensus/helpers/justification_finalization.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());

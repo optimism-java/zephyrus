@@ -125,6 +125,12 @@ pub fn setOrAppendList(comptime T: type, list: []T, index: ValidatorIndex, value
     }
 }
 
+pub fn hasFlag(flags: ParticipationFlags, flagIndex: u3) bool {
+    const flag = @as(ParticipationFlags, @intCast(@as(u8, 1) << flagIndex));
+    return (flags & flag) == flag;
+}
+
+
 test "test ExecutionBranch length" {
     const ExecutionBranchLength = @typeInfo(ExecutionBranch).array.len;
     try std.testing.expectEqual(4, ExecutionBranchLength);

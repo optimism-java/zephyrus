@@ -497,6 +497,48 @@ pub fn getPendingBalanceToWithdraw(state: *const consensus.BeaconState, validato
     return total;
 }
 
+pub fn getUnslashedParticipatingIndices(
+    state: *const consensus.BeaconState,
+    flagIndex: u3,
+    epoch: primitives.Epoch,
+    allocator: std.mem.Allocator,
+) ![]primitives.ValidatorIndex {
+    var result = std.AutoHashMap(primitives.ValidatorIndex, void).init(allocator);
+    defer result.deinit();
+
+    const currentEpoch = epoch_helper.getCurrentEpoch(state);
+    const previousEpoch = epoch_helper.getPreviousEpoch(state);
+
+    if (epoch != previousEpoch and epoch != currentEpoch) {
+        return error.InvalidEpoch;
+    }
+
+    const epochParticipation = if (epoch == currentEpoch)
+        state.currentEpochParticipation()
+    else
+        state.previousEpochParticipation();
+
+    const activeValidatorIndices = try getActiveValidatorIndices(state, epoch, allocator);
+    defer allocator.free(activeValidatorIndices);
+
+    for (activeValidatorIndices) |index| {
+        if (primitives.hasFlag(epochParticipation[index], flagIndex) and
+            !state.validators()[index].slashed)
+        {
+            try result.put(index, {});
+        }
+    }
+
+    const result_slice = try allocator.alloc(primitives.ValidatorIndex, result.count());
+    var i: usize = 0;
+    var iterator = result.keyIterator();
+    while (iterator.next()) |key| {
+        result_slice[i] = key.*;
+        i += 1;
+    }
+    return result_slice;
+}
+
 test "test getBalanceChurnLimit" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
