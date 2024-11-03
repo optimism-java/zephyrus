@@ -130,7 +130,6 @@ pub fn hasFlag(flags: ParticipationFlags, flagIndex: u3) bool {
     return (flags & flag) == flag;
 }
 
-
 test "test ExecutionBranch length" {
     const ExecutionBranchLength = @typeInfo(ExecutionBranch).array.len;
     try std.testing.expectEqual(4, ExecutionBranchLength);
