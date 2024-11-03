@@ -23,14 +23,14 @@ const ssz = @import("../../ssz/ssz.zig");
 ///        current_version=current_version,
 ///        genesis_validators_root=genesis_validators_root,
 ///   ))
-pub fn computeForkDataRoot(current_version: primitives.Version, genesis_validators_root: primitives.Root, allocator: std.mem.Allocator) !primitives.Root {
+pub fn computeForkDataRoot(current_version: primitives.Version, genesis_validators_root: *const primitives.Root, allocator: std.mem.Allocator) !primitives.Root {
     const fork_data = consensus.ForkData{
         .current_version = current_version,
-        .genesis_validators_root = genesis_validators_root,
+        .genesis_validators_root = genesis_validators_root.*,
     };
 
     var out: primitives.Root = undefined;
-    try ssz.hashTreeRoot(fork_data, &out, allocator);
+    try ssz.hashTreeRoot(&fork_data, &out, allocator);
     return out;
 }
 
@@ -49,7 +49,7 @@ pub fn computeForkDataRoot(current_version: primitives.Version, genesis_validato
 ///    4-bytes suffices for practical separation of forks/chains.
 ///    """
 ///    return ForkDigest(compute_fork_data_root(current_version, genesis_validators_root)[:4])
-pub fn computeForkDigest(currentVersion: primitives.Version, genesisValidatorsRoot: primitives.Root, allocator: std.mem.Allocator) !primitives.ForkDigest {
+pub fn computeForkDigest(currentVersion: primitives.Version, genesisValidatorsRoot: *const primitives.Root, allocator: std.mem.Allocator) !primitives.ForkDigest {
     const forkDataRoot = try computeForkDataRoot(currentVersion, genesisValidatorsRoot, allocator);
     return forkDataRoot[0..4].*;
 }
@@ -71,12 +71,12 @@ pub fn computeForkDigest(currentVersion: primitives.Version, genesisValidatorsRo
 ///       genesis_validators_root = Root()  # all bytes zero by default
 ///    fork_data_root = compute_fork_data_root(fork_version, genesis_validators_root)
 ///    return Domain(domain_type + fork_data_root[:28])
-pub fn computeDomain(domain_type: primitives.DomainType, fork_version: ?primitives.Version, genesis_validators_root: ?primitives.Root, allocator: std.mem.Allocator) !primitives.Domain {
+pub fn computeDomain(domain_type: primitives.DomainType, fork_version: ?primitives.Version, genesis_validators_root: ?*const primitives.Root, allocator: std.mem.Allocator) !primitives.Domain {
     const DOMAIN_TYPE_LENGTH: usize = 4;
     const FORK_DATA_ROOT_LENGTH: usize = 28;
 
     const effective_fork_version = fork_version orelse configs.ActiveConfig.get().GENESIS_FORK_VERSION;
-    const effective_genesis_validators_root = genesis_validators_root orelse @as(primitives.Root, .{0} ** 32);
+    const effective_genesis_validators_root = genesis_validators_root orelse &@as(primitives.Root, .{0} ** 32);
 
     const fork_data_root = try computeForkDataRoot(effective_fork_version, effective_genesis_validators_root, allocator);
 
@@ -106,13 +106,13 @@ pub fn computeDomain(domain_type: primitives.DomainType, fork_version: ?primitiv
 pub fn getDomain(state: *const consensus.BeaconState, domainType: primitives.DomainType, epoch: ?primitives.Epoch, allocator: std.mem.Allocator) !primitives.Domain {
     const current_epoch = epoch orelse epoch_helper.getCurrentEpoch(state);
     const fork_version = if (current_epoch < state.fork().epoch) state.fork().previous_version else state.fork().current_version;
-    return try computeDomain(domainType, fork_version, state.genesisValidatorsRoot(), allocator);
+    return try computeDomain(domainType, fork_version, &state.genesisValidatorsRoot(), allocator);
 }
 
 test "test computeForkDigest" {
     const currentVersion = .{3} ** 4;
     const genesisValidatorsRoot = .{2} ** 32;
-    const forkDigest = try computeForkDigest(currentVersion, genesisValidatorsRoot, std.testing.allocator);
+    const forkDigest = try computeForkDigest(currentVersion, &genesisValidatorsRoot, std.testing.allocator);
     try std.testing.expectEqual(4, forkDigest.len);
     try std.testing.expectEqual([4]u8{ 164, 100, 54, 186 }, forkDigest);
 }
@@ -120,7 +120,7 @@ test "test computeForkDigest" {
 test "test computeForkDataRoot" {
     const currentVersion = .{0} ** 4;
     const genesisValidatorsRoot = .{0} ** 32;
-    const forkDataRoot = try computeForkDataRoot(currentVersion, genesisValidatorsRoot, std.testing.allocator);
+    const forkDataRoot = try computeForkDataRoot(currentVersion, &genesisValidatorsRoot, std.testing.allocator);
     try std.testing.expectEqual(32, forkDataRoot.len);
     try std.testing.expectEqual([32]u8{ 245, 165, 253, 66, 209, 106, 32, 48, 39, 152, 239, 110, 211, 9, 151, 155, 67, 0, 61, 35, 32, 217, 240, 232, 234, 152, 49, 169, 39, 89, 251, 75 }, forkDataRoot);
 }
@@ -129,7 +129,7 @@ test "test computeDomain" {
     const domainType = .{2} ** 4;
     const forkVersion = .{4} ** 4;
     const genesisValidatorsRoot = .{5} ** 32;
-    const domain = try computeDomain(domainType, forkVersion, genesisValidatorsRoot, std.testing.allocator);
+    const domain = try computeDomain(domainType, forkVersion, &genesisValidatorsRoot, std.testing.allocator);
     try std.testing.expectEqual(32, domain.len);
     try std.testing.expectEqual([32]u8{ 2, 2, 2, 2, 32, 125, 236, 13, 25, 22, 206, 134, 1, 218, 218, 156, 241, 61, 204, 254, 64, 74, 66, 44, 6, 212, 31, 140, 234, 29, 169, 68 }, domain);
 }

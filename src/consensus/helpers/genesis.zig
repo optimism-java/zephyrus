@@ -27,7 +27,7 @@ const ssz = @import("../../ssz/ssz.zig");
 ///    if len(get_active_validator_indices(state, GENESIS_EPOCH)) < config.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT:
 ///       return False
 ///    return True
-pub fn isValidGenesisState(state: *consensus.BeaconState, allocator: std.mem.Allocator) !bool {
+pub fn isValidGenesisState(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !bool {
     if (state.genesisTime() < configs.ActiveConfig.get().MIN_GENESIS_TIME) {
         return false;
     }
@@ -103,7 +103,7 @@ pub fn isValidGenesisState(state: *consensus.BeaconState, allocator: std.mem.All
 ///    return state
 pub fn initializeBeaconStateFromEth1(
     fork_type: primitives.ForkType,
-    eth1_block_hash: primitives.Hash32,
+    eth1_block_hash: *const primitives.Hash32,
     eth1_timestamp: u64,
     deposits: []const consensus.Deposit,
     execution_payload_header: ?*const consensus.ExecutionPayloadHeader,
@@ -176,7 +176,7 @@ pub fn initializeBeaconStateFromEth1(
     try ssz.hashTreeRoot(beacon_block_body, &body_root, allocator);
 
     const randao_mixes_slice = try allocator.alloc(primitives.Bytes32, preset.ActivePreset.get().EPOCHS_PER_HISTORICAL_VECTOR);
-    @memset(randao_mixes_slice, eth1_block_hash);
+    @memset(randao_mixes_slice, eth1_block_hash.*);
 
     var state = switch (fork_type) {
         .phase0 => consensus.BeaconState{
@@ -184,7 +184,7 @@ pub fn initializeBeaconStateFromEth1(
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
-                    .block_hash = eth1_block_hash,
+                    .block_hash = eth1_block_hash.*,
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
@@ -199,7 +199,7 @@ pub fn initializeBeaconStateFromEth1(
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
-                    .block_hash = eth1_block_hash,
+                    .block_hash = eth1_block_hash.*,
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
@@ -216,7 +216,7 @@ pub fn initializeBeaconStateFromEth1(
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
-                    .block_hash = eth1_block_hash,
+                    .block_hash = eth1_block_hash.*,
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
@@ -234,7 +234,7 @@ pub fn initializeBeaconStateFromEth1(
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
-                    .block_hash = eth1_block_hash,
+                    .block_hash = eth1_block_hash.*,
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
@@ -252,7 +252,7 @@ pub fn initializeBeaconStateFromEth1(
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
-                    .block_hash = eth1_block_hash,
+                    .block_hash = eth1_block_hash.*,
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },
@@ -270,7 +270,7 @@ pub fn initializeBeaconStateFromEth1(
                 .genesis_time = eth1_timestamp + configs.ActiveConfig.get().GENESIS_DELAY,
                 .fork = fork,
                 .eth1_data = consensus.Eth1Data{
-                    .block_hash = eth1_block_hash,
+                    .block_hash = eth1_block_hash.*,
                     .deposit_count = @as(u64, deposits.len),
                     .deposit_root = undefined,
                 },

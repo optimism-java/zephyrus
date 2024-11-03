@@ -78,7 +78,7 @@ pub fn processVoluntaryExit(state: *consensus.BeaconState, signed_voluntary_exit
         null;
 
     // Verify signature
-    const domain = try domain_helper.computeDomain(constants.DOMAIN_VOLUNTARY_EXIT, fork_version, state.genesisValidatorsRoot(), allocator);
+    const domain = try domain_helper.computeDomain(constants.DOMAIN_VOLUNTARY_EXIT, fork_version, &state.genesisValidatorsRoot(), allocator);
     const signing_root = try signing_root_helper.computeSigningRoot(&voluntary_exit, &domain, allocator);
     if (!bls_helper.verify(&validator.pubkey, &signing_root, &signed_voluntary_exit.signature)) {
         return error.InvalidSignature;
