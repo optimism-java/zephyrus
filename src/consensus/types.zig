@@ -179,13 +179,9 @@ pub const VoluntaryExit = struct {
     validator_index: primitives.ValidatorIndex,
 };
 
-pub const SignedVoluntaryExit = union(primitives.ForkType) {
-    phase0: NonExistType,
-    altair: altair.SignedVoluntaryExit,
-    bellatrix: altair.SignedVoluntaryExit,
-    capella: altair.SignedVoluntaryExit,
-    deneb: altair.SignedVoluntaryExit,
-    electra: altair.SignedVoluntaryExit,
+pub const SignedVoluntaryExit = struct {
+    message: VoluntaryExit,
+    signature: primitives.BLSSignature,
 };
 
 pub const SignedBeaconBlockHeader = struct {
@@ -530,6 +526,20 @@ pub const PendingPartialWithdrawal = union(primitives.ForkType) {
     capella: NonExistType,
     deneb: NonExistType,
     electra: electra.PendingPartialWithdrawal,
+
+    pub fn index(self: *const PendingPartialWithdrawal) primitives.ValidatorIndex {
+        return switch (self.*) {
+            .phase0, .altair, .bellatrix, .capella, .deneb => @panic("index is not supported for phase0, altair, bellatrix, capella, deneb"),
+            inline else => |withdrawal| withdrawal.index,
+        };
+    }
+
+    pub fn amount(self: *const PendingPartialWithdrawal) primitives.Gwei {
+        return switch (self.*) {
+            .phase0, .altair, .bellatrix, .capella, .deneb => @panic("amount is not supported for phase0, altair, bellatrix, capella, deneb"),
+            inline else => |withdrawal| withdrawal.amount,
+        };
+    }
 };
 
 pub const WithdrawalRequest = union(primitives.ForkType) {
@@ -748,8 +758,16 @@ pub const BeaconState = union(primitives.ForkType) {
     /// pendingBalanceDeposits returns the pending balance deposits of the given state.
     pub fn pendingBalanceDeposit(self: *const BeaconState) []PendingBalanceDeposit {
         return switch (self.*) {
-            .phase0, .altair, .bellatrix, .capella, .deneb => @panic("pending_balance_deposits is not supported for phase0"),
+            .phase0, .altair, .bellatrix, .capella, .deneb => @panic("pending_balance_deposits is not supported for phase0, altair, bellatrix, capella, deneb"),
             inline else => |state| state.pending_balance_deposits,
+        };
+    }
+
+    /// pendingPartialWithdrawals returns the pending partial withdrawals of the given state.
+    pub fn pendingPartialWithdrawals(self: *const BeaconState) []PendingPartialWithdrawal {
+        return switch (self.*) {
+            .phase0, .altair, .bellatrix, .capella, .deneb => @panic("pending_partial_withdrawals is not supported for phase0, altair, bellatrix, capella, deneb"),
+            inline else => |state| state.pending_partial_withdrawals,
         };
     }
 
@@ -781,23 +799,6 @@ test "test Attestation" {
     };
 
     try std.testing.expectEqual(attestation1.altair.aggregation_bits.len, 0);
-}
-
-test "test SignedVoluntaryExit" {
-    const exit = SignedVoluntaryExit{
-        .phase0 = NonExistType{},
-    };
-
-    try std.testing.expectEqual(exit.phase0, NonExistType{});
-
-    const exit1 = SignedVoluntaryExit{
-        .altair = altair.SignedVoluntaryExit{
-            .message = undefined,
-            .signature = undefined,
-        },
-    };
-
-    try std.testing.expectEqual(exit1.altair.message, undefined);
 }
 
 test "test SyncAggregate" {
@@ -1202,4 +1203,13 @@ test "test Validator" {
     };
 
     try std.testing.expectEqual(validator.effective_balance, 0);
+}
+
+test "test SignedVoluntaryExit" {
+    const exit = SignedVoluntaryExit{
+        .message = undefined,
+        .signature = undefined,
+    };
+
+    try std.testing.expectEqual(exit.message, undefined);
 }

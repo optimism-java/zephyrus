@@ -38,11 +38,6 @@ pub const LightClientBootstrap = struct {
     current_sync_committee_branch: primitives.CurrentSyncCommitteeBranch,
 };
 
-pub const SignedVoluntaryExit = struct {
-    message: consensus.VoluntaryExit,
-    signature: primitives.BLSSignature,
-};
-
 pub const SyncAggregate = struct {
     sync_committee_bits: []bool,
     sync_committee_signature: primitives.BLSSignature,
@@ -196,15 +191,6 @@ test "test BeaconBlockBody" {
     };
 
     try std.testing.expectEqual(body.randao_reveal.len, 96);
-}
-
-test "test SignedVoluntaryExit" {
-    const exit = SignedVoluntaryExit{
-        .message = undefined,
-        .signature = undefined,
-    };
-
-    try std.testing.expectEqual(exit.message, undefined);
 }
 
 test "test SyncAggregate" {

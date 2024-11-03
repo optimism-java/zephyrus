@@ -487,6 +487,16 @@ pub fn switchToCompoundingValidator(state: *consensus.BeaconState, index: primit
     }
 }
 
+pub fn getPendingBalanceToWithdraw(state: *const consensus.BeaconState, validator_index: primitives.ValidatorIndex) primitives.Gwei {
+    var total: primitives.Gwei = 0;
+    for (state.pendingPartialWithdrawals()) |withdrawal| {
+        if (withdrawal.index() == validator_index) {
+            total += withdrawal.amount();
+        }
+    }
+    return total;
+}
+
 test "test getBalanceChurnLimit" {
     preset.ActivePreset.set(preset.Presets.minimal);
     defer preset.ActivePreset.reset();
