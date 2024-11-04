@@ -46,3 +46,5 @@ pub const UNSET_DEPOSIT_REQUESTS_START_INDEX: u64 = std.math.maxInt(u64);
 pub const COMPOUNDING_WITHDRAWAL_PREFIX: types.Bytes1 = 0x02;
 pub const DOMAIN_SYNC_COMMITTEE: types.DomainType = .{ 0x07, 0x00, 0x00, 0x00 };
 pub const DOMAIN_SYNC_COMMITTEE_SELECTION_PROOF: types.DomainType = .{ 0x08, 0x00, 0x00, 0x00 };
+
+pub const TIMELY_TARGET_FLAG_INDEX: u3 = 1;

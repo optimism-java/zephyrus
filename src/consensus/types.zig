@@ -747,6 +747,42 @@ pub const BeaconState = union(primitives.ForkType) {
         };
     }
 
+    pub fn currentJustifiedCheckpoint(self: *const BeaconState) Checkpoint {
+        return switch (self.*) {
+            inline else => |state| state.current_justified_checkpoint,
+        };
+    }
+
+    pub fn setCurrentJustifiedCheckpoint(self: *BeaconState, checkpoint: *const Checkpoint) void {
+        switch (self.*) {
+            inline else => |*state| state.current_justified_checkpoint = checkpoint.*,
+        }
+    }
+
+    pub fn previousJustifiedCheckpoint(self: *const BeaconState) Checkpoint {
+        return switch (self.*) {
+            inline else => |state| state.previous_justified_checkpoint,
+        };
+    }
+
+    pub fn setPreviousJustifiedCheckpoint(self: *BeaconState, checkpoint: *const Checkpoint) void {
+        switch (self.*) {
+            inline else => |*state| state.previous_justified_checkpoint = checkpoint.*,
+        }
+    }
+
+    pub fn justificationBits(self: *const BeaconState) []bool {
+        return switch (self.*) {
+            inline else => |state| state.justification_bits,
+        };
+    }
+
+    pub fn setFinalizedCheckpoint(self: *BeaconState, checkpoint: *const Checkpoint) void {
+        switch (self.*) {
+            inline else => |*state| state.finalized_checkpoint = checkpoint.*,
+        }
+    }
+
     /// inactivityScores returns the inactivity scores of the given state.
     pub fn inactivityScores(self: *const BeaconState) []u64 {
         return switch (self.*) {
