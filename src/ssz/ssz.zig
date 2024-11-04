@@ -123,10 +123,16 @@ pub fn decodeSSZ(comptime T: type, serialized: []const u8) SSZDecodeErrors!T {
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
                     .bool, .int, .array => continue,
+                    .@"struct" => {
+                        if (isStaticType(field.type)) {
+                            continue;
+                        } else {
+                            num_fields += 1;
+                        }
+                    },
                     else => num_fields += 1,
                 }
             }
-
             var indices: [num_fields]u32 = undefined;
             var result: T = undefined;
 
@@ -137,6 +143,12 @@ pub fn decodeSSZ(comptime T: type, serialized: []const u8) SSZDecodeErrors!T {
                     .bool, .int, .array => {
                         @field(result, field.name) = try decodeSSZ(field.type, serialized[index .. index + @sizeOf(field.type)]);
                         index += @sizeOf(field.type);
+                    },
+                    .@"struct" => {
+                        if (isStaticType(field.type)) {
+                            @field(result, field.name) = try decodeSSZ(field.type, serialized[index .. index + @sizeOf(field.type)]);
+                            index += @sizeOf(field.type);
+                        }
                     },
                     else => {
                         indices[field_index] = try decodeSSZ(u32, serialized[index .. index + 4]);
@@ -150,6 +162,11 @@ pub fn decodeSSZ(comptime T: type, serialized: []const u8) SSZDecodeErrors!T {
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
                     .bool, .int, .array => continue,
+                    .@"struct" => {
+                        if (isStaticType(field.type)) {
+                            continue;
+                        }
+                    },
                     else => {
                         const final = if (final_index == indices.len - 1) serialized.len else indices[final_index + 1];
                         @field(result, field.name) = try decodeSSZ(field.type, serialized[indices[final_index]..final]);
@@ -308,6 +325,11 @@ fn encodeItem(value: anytype, list: *std.ArrayList(u8)) Allocator.Error!void {
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
                     .int, .bool, .array => start += @sizeOf(field.type),
+                    .@"struct" => {
+                        if (isStaticType(field.type)) {
+                            start += @sizeOf(field.type);
+                        }
+                    },
                     else => start += 4,
                 }
             }
@@ -316,6 +338,11 @@ fn encodeItem(value: anytype, list: *std.ArrayList(u8)) Allocator.Error!void {
             inline for (struct_info.fields) |field| {
                 switch (@typeInfo(field.type)) {
                     .int, .bool, .array => try encodeItem(@field(value, field.name), list),
+                    .@"struct" => {
+                        if (isStaticType(field.type)) {
+                            try encodeItem(@field(value, field.name), list);
+                        }
+                    },
                     else => {
                         try encodeItem(@as(u32, @truncate(accumulate)), list);
                         accumulate += sizeOfValue(@field(value, field.name));
@@ -351,6 +378,19 @@ fn sizeOfValue(value: anytype) usize {
         else
             1 + sizeOfValue(value.?),
         .null => return @intCast(0),
+        .@"struct" => |struct_info| {
+            comptime var start: usize = 0;
+            inline for (struct_info.fields) |field| {
+                switch (@typeInfo(field.type)) {
+                    .int, .bool, .array => start += @sizeOf(field.type),
+                    .@"struct" => {
+                        start += sizeOfValue(field.type);
+                    },
+                    else => {},
+                }
+            }
+            return start;
+        },
         else => @compileError("Unsupported type " ++ @typeName(@TypeOf(value))),
     }
     // It should never reach this
@@ -368,6 +408,7 @@ pub inline fn isStaticType(comptime T: type) bool {
             if (!isStaticType(field.type)) {
                 return false;
             }
+            return true;
         },
         .pointer => switch (info.pointer.size) {
             .Many, .Slice, .C => return false,
