@@ -1,5 +1,7 @@
 # zephyrus
 
+This repo is development with zig, zig is a coding language for more [info](https://ziglang.org/) for basic coding [guide](https://zig.guide/standard-library/readers-and-writers)
+
 ## Build
 
 ```bash
