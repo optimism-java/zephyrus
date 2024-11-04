@@ -539,21 +539,21 @@ pub fn getUnslashedParticipatingIndices(
     return result_slice;
 }
 
-pub fn getEligibleValidatorIndices(state: *consensus.BeaconState,allocator:std.mem.Allocator) ![]primitives.ValidatorIndex {
+pub fn getEligibleValidatorIndices(state: *consensus.BeaconState, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
     const previous_epoch = epoch_helper.getPreviousEpoch(state);
     var eligible = std.ArrayList(primitives.ValidatorIndex).init(allocator);
     defer eligible.deinit();
 
     for (state.validators(), 0..) |v, index| {
         if (isActiveValidator(&v, previous_epoch) or
-            (v.slashed and previous_epoch + 1 < v.withdrawable_epoch)) {
+            (v.slashed and previous_epoch + 1 < v.withdrawable_epoch))
+        {
             try eligible.append(@as(primitives.ValidatorIndex, index));
         }
     }
 
     return eligible.toOwnedSlice();
 }
-
 
 test "test getBalanceChurnLimit" {
     preset.ActivePreset.set(preset.Presets.minimal);
