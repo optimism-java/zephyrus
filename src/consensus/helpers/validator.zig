@@ -11,6 +11,7 @@ const epoch_helper = @import("../../consensus/helpers/epoch.zig");
 const shuffle_helper = @import("../../consensus/helpers/shuffle.zig");
 const balance_helper = @import("../../consensus/helpers/balance.zig");
 const committee_helper = @import("../../consensus/helpers/committee.zig");
+const finality_helper = @import("../../consensus/helpers/finality.zig");
 
 /// Check if a validator is active at a given epoch.
 /// A validator is active if the current epoch is greater than or equal to the validator's activation epoch and less than the validator's exit epoch.
@@ -553,6 +554,44 @@ pub fn getEligibleValidatorIndices(state: *consensus.BeaconState, allocator: std
     }
 
     return eligible.toOwnedSlice();
+}
+
+pub fn processInactivityUpdates(state: *consensus.BeaconState, allocator: std.mem.Allocator) !void {
+    // Skip the genesis epoch as score updates are based on the previous epoch participation
+    if (epoch_helper.getCurrentEpoch(state) == constants.GENESIS_EPOCH) {
+        return;
+    }
+
+    const participating_indices = try getUnslashedParticipatingIndices(state, constants.TIMELY_TARGET_FLAG_INDEX, epoch_helper.getPreviousEpoch(state), allocator);
+    defer allocator.free(participating_indices);
+
+    const eligible_indices = try getEligibleValidatorIndices(state, allocator);
+    defer allocator.free(eligible_indices);
+
+    for (eligible_indices) |index| {
+        // Increase the inactivity score of inactive validators
+        if (std.mem.containsAtLeast(primitives.ValidatorIndex, participating_indices, 1, &[_]primitives.ValidatorIndex{index})) {
+            state.inactivityScores()[index] -= @min(1, state.inactivityScores()[index]);
+        } else {
+            state.inactivityScores()[index] += configs.ActiveConfig.get().INACTIVITY_SCORE_BIAS;
+        }
+        // Decrease the inactivity score of all eligible validators during a leak-free epoch
+        if (!finality_helper.isInInactivityLeak(state)) {
+            state.inactivityScores()[index] -= @min(configs.ActiveConfig.get().INACTIVITY_SCORE_RECOVERY_RATE, state.inactivityScores()[index]);
+        }
+    }
+}
+
+pub fn getBaseReward(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !primitives.Gwei {
+    const increments = state.validators()[index].effective_balance / preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT;
+    const base_reward_per_increment = try getBaseRewardPerIncrement(state, allocator);
+    return increments * base_reward_per_increment;
+}
+
+pub fn getBaseRewardPerIncrement(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.Gwei {
+    const total_balance = try balance_helper.getTotalActiveBalance(state, allocator);
+    const sqrt_balance = std.math.sqrt(total_balance);
+    return @as(primitives.Gwei, @divFloor(preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT * preset.ActivePreset.get().BASE_REWARD_FACTOR, sqrt_balance));
 }
 
 test "test getBalanceChurnLimit" {

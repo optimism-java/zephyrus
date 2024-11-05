@@ -1,4 +1,5 @@
 const std = @import("std");
+const constants = @import("constants.zig");
 const testing = std.testing;
 
 pub fn ceilLog2(x: usize) u64 {
@@ -13,6 +14,19 @@ pub fn floorLog2(x: usize) u64 {
         @panic("floorlog2 accepts only positive values");
     }
     return @as(u64, @bitSizeOf(u64) - @clz(x) - 1);
+}
+
+pub fn integerSquareroot(n: u64) u64 {
+    if (n == std.math.maxInt(u64)) {
+        return constants.UINT64_MAX_SQRT; // UINT64_MAX_SQRT
+    }
+    var x = n;
+    var y = (x + 1) / 2;
+    while (y < x) {
+        x = y;
+        y = (x + n / x) / 2;
+    }
+    return x;
 }
 
 test "ceilLog2 with valid inputs" {
