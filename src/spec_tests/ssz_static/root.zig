@@ -64,7 +64,7 @@ const CommonUnion = union {
     // BeaconBlock: types.BeaconBlock,
     BeaconBlockHeader: types.BeaconBlockHeader,
     Checkpoint: types.Checkpoint,
-    // Deposit: types.Deposit,
+    Deposit: types.Deposit,
     DepositData: types.DepositData,
     DepositMessage: types.DepositMessage,
     Eth1Block: types.Eth1Block,

@@ -902,7 +902,10 @@ pub fn merkleize(chunks: []chunk, limit: ?usize, out: *[32]u8) anyerror!void {
             if (size / 2 < chunks.len) {
                 try merkleize(chunks[size / 2 ..], size / 2, &buf);
                 hasher.update(buf[0..]);
-            } else hasher.update(hashes_of_zero[size / 2 - 1][0..]);
+            } else {
+                const power = std.math.log2(size);
+                hasher.update(hashes_of_zero[power - 1][0..]);
+            }
             hasher.final(out);
         },
     }
