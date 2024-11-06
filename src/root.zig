@@ -31,7 +31,8 @@ pub const deposit_helper = @import("consensus/helpers/deposit.zig");
 pub const voluntary_exit_helper = @import("consensus/helpers/voluntary_exit.zig");
 pub const justification_finalization_helper = @import("consensus/helpers/justification_finalization.zig");
 pub const finality = @import("consensus/helpers/finality.zig");
-pub const rewards_penalties = @import("consensus/helpers/rewards_penalties.zig");
+pub const rewards_penalties_helper = @import("consensus/helpers/rewards_penalties.zig");
+pub const segment_storage = @import("storage/segment_storage.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());
