@@ -540,7 +540,7 @@ pub fn getUnslashedParticipatingIndices(
     return result_slice;
 }
 
-pub fn getEligibleValidatorIndices(state: *consensus.BeaconState, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
+pub fn getEligibleValidatorIndices(state: *const consensus.BeaconState, allocator: std.mem.Allocator) ![]primitives.ValidatorIndex {
     const previous_epoch = epoch_helper.getPreviousEpoch(state);
     var eligible = std.ArrayList(primitives.ValidatorIndex).init(allocator);
     defer eligible.deinit();
@@ -580,18 +580,6 @@ pub fn processInactivityUpdates(state: *consensus.BeaconState, allocator: std.me
             state.inactivityScores()[index] -= @min(configs.ActiveConfig.get().INACTIVITY_SCORE_RECOVERY_RATE, state.inactivityScores()[index]);
         }
     }
-}
-
-pub fn getBaseReward(state: *const consensus.BeaconState, index: primitives.ValidatorIndex, allocator: std.mem.Allocator) !primitives.Gwei {
-    const increments = state.validators()[index].effective_balance / preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT;
-    const base_reward_per_increment = try getBaseRewardPerIncrement(state, allocator);
-    return increments * base_reward_per_increment;
-}
-
-pub fn getBaseRewardPerIncrement(state: *const consensus.BeaconState, allocator: std.mem.Allocator) !primitives.Gwei {
-    const total_balance = try balance_helper.getTotalActiveBalance(state, allocator);
-    const sqrt_balance = std.math.sqrt(total_balance);
-    return @as(primitives.Gwei, @divFloor(preset.ActivePreset.get().EFFECTIVE_BALANCE_INCREMENT * preset.ActivePreset.get().BASE_REWARD_FACTOR, sqrt_balance));
 }
 
 test "test getBalanceChurnLimit" {

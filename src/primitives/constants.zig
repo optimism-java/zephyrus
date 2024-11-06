@@ -48,3 +48,13 @@ pub const DOMAIN_SYNC_COMMITTEE: types.DomainType = .{ 0x07, 0x00, 0x00, 0x00 };
 pub const DOMAIN_SYNC_COMMITTEE_SELECTION_PROOF: types.DomainType = .{ 0x08, 0x00, 0x00, 0x00 };
 
 pub const TIMELY_TARGET_FLAG_INDEX: u3 = 1;
+pub const TIMELY_HEAD_FLAG_INDEX: u3 = 2;
+pub const TIMELY_SOURCE_WEIGHT: u64 = 14;
+pub const TIMELY_TARGET_WEIGHT: u64 = 26;
+pub const TIMELY_HEAD_WEIGHT: u64 = 14;
+
+pub const PARTICIPATION_FLAG_WEIGHTS = [_]u64{
+    TIMELY_SOURCE_WEIGHT,
+    TIMELY_TARGET_WEIGHT,
+    TIMELY_HEAD_WEIGHT,
+};
