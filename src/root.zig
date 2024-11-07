@@ -33,6 +33,7 @@ pub const justification_finalization_helper = @import("consensus/helpers/justifi
 pub const finality = @import("consensus/helpers/finality.zig");
 pub const rewards_penalties_helper = @import("consensus/helpers/rewards_penalties.zig");
 pub const segment_storage = @import("storage/segment_storage.zig");
+pub const queues = @import("concurrent/concurrent_queues.zig");
 
 test {
     @import("std").testing.refAllDeclsRecursive(@This());
