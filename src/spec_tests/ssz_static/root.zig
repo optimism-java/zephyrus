@@ -59,7 +59,7 @@ const StructMultiPhase = union {
 // test cases for all phases
 const CommonUnion = union {
     // AggregateAndProof: types.AggregateAndProof,
-    // AttestationData: types.AttestationData,
+    AttestationData: types.AttestationData,
     // AttesterSlashing: types.AttesterSlashing,
     // BeaconBlock: types.BeaconBlock,
     BeaconBlockHeader: types.BeaconBlockHeader,
@@ -71,9 +71,9 @@ const CommonUnion = union {
     Eth1Data: types.Eth1Data,
     Fork: types.Fork,
     ForkData: types.ForkData,
-    // HistoricalBatch: types.HistoricalBatch,
-    // IndexedAttestation: types.IndexedAttestation,
-    // PendingAttestation: types.PendingAttestation,
+    // HistoricalBatch: types.HistoricalBatch,  // need to know the lenght in spec
+    // IndexedAttestation: types.IndexedAttestation, // need to know the limit in spec
+    // PendingAttestation: types.PendingAttestation, // parse yaml
     // ProposerSlashing: types.ProposerSlashing,
     // SignedBeaconBlock: types.SignedBeaconBlock,
     // SignedBeaconBlockHeader: types.SignedBeaconBlockHeader,

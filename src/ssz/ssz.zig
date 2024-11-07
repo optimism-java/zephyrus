@@ -1028,12 +1028,44 @@ pub fn hashTreeRoot(value: anytype, out: *[32]u8, allocator: Allocator) !void {
             switch (type_info.pointer.size) {
                 .One => try hashTreeRoot(value.*, out, allocator),
                 .Slice => {
-                    switch (@typeInfo(type_info.pointer.child)) {
+                    const slice_info = @typeInfo(type_info.pointer.child);
+                    switch (slice_info) {
                         .int => {
                             var list = ArrayList(u8).init(allocator);
                             defer list.deinit();
                             const chunks = try pack(value, &list);
+                            // TODO: slice should have a limit
                             try merkleize(chunks, null, out);
+                            var length: [32]u8 = [_]u8{0} ** 32;
+                            std.mem.writeInt(u64, length[0..8], value.len, .little);
+                            mixInLength(out.*, length, out);
+                        },
+                        .array => {
+                            switch (@typeInfo(slice_info.array.child)) {
+                                .int => {
+                                    var list = ArrayList(u8).init(allocator);
+                                    defer list.deinit();
+                                    const chunks = try pack(value, &list);
+                                    try merkleize(chunks, null, out);
+                                },
+                                .bool => {
+                                    var list = ArrayList(u8).init(allocator);
+                                    defer list.deinit();
+                                    const chunks = try packBits(value, list);
+                                    try merkleize(chunks, null, out);
+                                },
+                                .array => {
+                                    var chunks = ArrayList(chunk).init(allocator);
+                                    defer chunks.deinit();
+                                    var tmp: chunk = undefined;
+                                    for (value) |item| {
+                                        try hashTreeRoot(item, &tmp, allocator);
+                                        try chunks.append(tmp);
+                                    }
+                                    try merkleize(chunks.items, null, out);
+                                },
+                                else => return error.NotSupported,
+                            }
                         },
                         else => return error.UnSupportedPointerType,
                     }
