@@ -34,7 +34,8 @@ pub const finality = @import("consensus/helpers/finality.zig");
 pub const rewards_penalties_helper = @import("consensus/helpers/rewards_penalties.zig");
 pub const segment_storage = @import("storage/segment_storage.zig");
 pub const queues = @import("concurrent/concurrent_queues.zig");
-
+// pub const proto_array = @import("forkchoice/proto_array.zig");
+pub const proto_array_lighthouse = @import("forkchoice/proto_array_lighthouse.zig");
 test {
     @import("std").testing.refAllDeclsRecursive(@This());
 }
