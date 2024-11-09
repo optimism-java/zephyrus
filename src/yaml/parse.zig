@@ -589,6 +589,10 @@ const Parser = struct {
                     self.token_it.seekBy(-1);
                     break;
                 },
+                .flow_map_end => {
+                    self.token_it.seekTo(key_pos + 1);
+                    break;
+                },
                 else => {
                     // TODO key not being a literal
                     // return error.Unhandled;
