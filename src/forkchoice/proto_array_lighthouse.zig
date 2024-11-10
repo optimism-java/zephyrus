@@ -34,7 +34,7 @@ pub const ValidExecutionStatusBecameInvalid = struct {
 };
 
 pub const ProtoNode = struct {
-    slot: u64,
+    slot: primitives.Slot,
     state_root: primitives.Root,
     target_root: primitives.Root,
     root: primitives.Root,
