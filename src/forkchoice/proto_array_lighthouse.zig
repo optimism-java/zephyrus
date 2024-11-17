@@ -571,48 +571,6 @@ pub const ProtoArray = struct {
         return false;
     }
 
-    // fn invalidateAncestors(
-    //     self: *ProtoArray,
-    //     start_index: usize,
-    //     invalidated_indices: *std.AutoHashMap(usize, void),
-    //     head_block_root: *const primitives.Root,
-    //     latest_valid_ancestor_is_descendant: bool,
-    //     op: *const InvalidationOperation,
-    // ) !void {
-    //     var index = start_index;
-    //
-    //     while (true) {
-    //         var node = &self.nodes.items[index];
-    //         std.debug.print("Invalidating block at index {}: status={}\n", .{ index, node.execution_status });
-    //
-    //         // Only invalidate if:
-    //         // 1. This is the head block, or
-    //         // 2. We have a valid ancestor and are still traversing between head and ancestor, or
-    //         // 3. We should always invalidate blocks (based on op)
-    //     if (std.mem.eql(u8, &node.root, head_block_root) or
-    //             latest_valid_ancestor_is_descendant or
-    //             shouldInvalidateBlock(op))
-    //             {
-    //                 switch (node.execution_status) {
-    //                     .Valid => |_| return error.ValidExecutionStatusBecameInvalid,
-    //                     .Optimistic => |hash| {
-    //                         try invalidated_indices.put(index, {});
-    //                         node.execution_status = .{ .Invalid = hash };
-    //                         node.best_child = null;
-    //                         node.best_descendant = null;
-    //                     },
-    //                     .Invalid => {},
-    //                     .Irrelevant => break,
-    //                 }
-    //             } else {
-    //                 break;
-    //             }
-    //
-    //         if (node.parent) |parent_index| {
-    //             index = parent_index;
-    //         } else break;
-    //     }
-    // }
     fn invalidateAncestors(
         self: *ProtoArray,
         start_index: usize,
