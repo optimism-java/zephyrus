@@ -2,6 +2,8 @@
 
 This repo is development with zig, zig is a coding language for more [info](https://ziglang.org/) for basic coding [guide](https://zig.guide/standard-library/readers-and-writers)
 
+The current version being used in development is `0.14.0-dev.2079+ba2d00663`. You may use [`zigup`](https://github.com/marler8997/zigup) to download and use this specific version.
+
 ## Build
 
 ```bash
